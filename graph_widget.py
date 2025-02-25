@@ -1,6 +1,47 @@
-from PyQt6.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsEllipseItem, QGraphicsLineItem, QGraphicsTextItem
-from PyQt6.QtGui import QPen
+from PyQt6.QtWidgets import (
+    QGraphicsView, QGraphicsScene, QGraphicsEllipseItem,
+    QGraphicsLineItem, QGraphicsTextItem, QGraphicsPolygonItem
+)
+from PyQt6.QtGui import QPen, QPolygonF
+import math
 from PyQt6.QtCore import Qt, QPointF
+
+class Arrow(QGraphicsLineItem):
+    def __init__(self, start_x, start_y, end_x, end_y, parent=None):
+        super().__init__(parent)
+        self.setLine(start_x, start_y, end_x, end_y)
+        self.arrowhead = None
+        self.source_id = None
+        self.target_id = None
+        self.setPen(QPen(Qt.GlobalColor.black, 2))
+        self._draw_arrowhead()
+
+    def _draw_arrowhead(self):
+
+        line = self.line()
+        angle = math.atan2(line.dy(), line.dx())
+
+        arrow_size = 10
+        arrow_p1 = line.p2() - QPointF(math.cos(angle) * arrow_size, math.sin(angle) * arrow_size)
+        arrow_p2 = QPointF(
+            arrow_p1.x() - math.cos(angle - math.pi / 6) * arrow_size,
+            arrow_p1.y() - math.sin(angle - math.pi / 6) * arrow_size,
+        )
+        arrow_p3 = QPointF(
+            arrow_p1.x() - math.cos(angle + math.pi / 6) * arrow_size,
+            arrow_p1.y() - math.sin(angle + math.pi / 6) * arrow_size,
+        )
+
+        polygon = QPolygonF([line.p2(), arrow_p2, arrow_p3])
+        self.arrowhead = QGraphicsPolygonItem(polygon)
+        self.arrowhead.setBrush(Qt.GlobalColor.black)
+        if self.scene():
+            self.scene().addItem(self.arrowhead)
+
+    def setLine(self, *args):
+        super().setLine(*args)
+        self._draw_arrowhead()
+
 
 class Text(QGraphicsTextItem):
     def __init__(self, text, parent=None):
@@ -28,24 +69,28 @@ class DraggableNode(QGraphicsEllipseItem):
         # Get updated node position
         pos = self.pos() + QPointF(40, 40)
         
-        # Update node label position (move slightly above the node)
+        # Update node label position
         if self.node_text:
-            self.node_text.setPos(self.pos() + QPointF(40, 40))  # Adjust offset as needed
+            self.node_text.setPos(self.pos() + QPointF(40, 40))
         
         for edge, text in zip(self.edges, self.text_items):
+            # Remove old arrowhead
+            if edge.arrowhead:
+                edge.scene().removeItem(edge.arrowhead)
+                edge.arrowhead = None
+                
             line = edge.line()
-
+            
             # Update edge position
             if self.node_id == edge.source_id:
                 edge.setLine(pos.x(), pos.y(), line.x2(), line.y2())
             else:
                 edge.setLine(line.x1(), line.y1(), pos.x(), pos.y())
 
-            # ✅ Update text position to stay in the middle
+            # Update text position
             new_line = edge.line()
             text.setPos((new_line.x1() + new_line.x2()) / 2, 
-                        (new_line.y1() + new_line.y2()) / 2 - 10)  # Adjust slightly above the line
-
+                        (new_line.y1() + new_line.y2()) / 2 - 10)
 
 
 class GraphWidget(QGraphicsView):
@@ -64,7 +109,7 @@ class GraphWidget(QGraphicsView):
         self.scene.addItem(node)
         self.node_items[node_id] = node
         
-        # ✅ Correctly position the text above the node
+        # Correctly position the text above the node
         text_item = Text(str(node_id))
         text_item.setPos(x - 10, y - 12)  # Adjusted position
         self.scene.addItem(text_item)
@@ -82,12 +127,11 @@ class GraphWidget(QGraphicsView):
         # Get current positions of nodes
         pos1 = node1.pos() + QPointF(40, 40)
         pos2 = node2.pos() + QPointF(40, 40)
-
-        edge = QGraphicsLineItem(pos1.x(), pos1.y(), pos2.x(), pos2.y())
-        edge.setPen(QPen(Qt.GlobalColor.black, 2))
+        edge = Arrow(pos1.x(), pos1.y(), pos2.x(), pos2.y())
         edge.source_id = node1_id
         edge.target_id = node2_id
         self.scene.addItem(edge)
+        self.scene.addItem(edge.arrowhead)
         self.edges.append(edge)
 
         text_item = Text(str(gain))
