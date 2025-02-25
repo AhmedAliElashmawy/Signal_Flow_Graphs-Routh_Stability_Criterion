@@ -34,11 +34,7 @@ class MainWindow(QMainWindow):
 
         # Node creation widgets
         self.node_id_input = QLineEdit()
-        self.node_x_input = QLineEdit()
-        self.node_y_input = QLineEdit()
         self.node_id_input.setPlaceholderText("Node ID")
-        self.node_x_input.setPlaceholderText("X")
-        self.node_y_input.setPlaceholderText("Y")
         
         # Edge creation widgets
         self.from_node_input = QLineEdit()
@@ -49,10 +45,6 @@ class MainWindow(QMainWindow):
         self.gain_input.setPlaceholderText("Gain")
 
         # Add widgets to toolbar
-        toolbar.addWidget(QLabel("Add Node:"))
-        toolbar.addWidget(self.node_id_input)
-        toolbar.addWidget(self.node_x_input)
-        toolbar.addWidget(self.node_y_input)
         add_node_btn = QPushButton("Add Node")
         add_node_btn.clicked.connect(self.add_node)
         toolbar.addWidget(add_node_btn)
@@ -73,19 +65,24 @@ class MainWindow(QMainWindow):
 
     def add_node(self):
         try:
-            node_id = self.node_id_input.text()
-            x = float(self.node_x_input.text())
-            y = float(self.node_y_input.text())
+            num_nodes = self.graph_widget.num_nodes()
+            node_id = num_nodes + 1
+            x = 50
+            y = 50
             self.graph_widget.add_node(node_id, x, y)
         except (ValueError, AttributeError):
             pass  # Handle invalid input
 
     def add_edge(self):
         try:
-            from_node = self.from_node_input.text()
-            to_node = self.to_node_input.text()
+            from_node = int(self.from_node_input.text())
+            to_node = int(self.to_node_input.text())
             gain = float(self.gain_input.text())
             self.graph_widget.add_edge(from_node, to_node, gain)
+            # Clear inputs after successful addition
+            self.from_node_input.clear()
+            self.to_node_input.clear()
+            self.gain_input.clear()
         except (ValueError, AttributeError):
             pass  # Handle invalid input
 
