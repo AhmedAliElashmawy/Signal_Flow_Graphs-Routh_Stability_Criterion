@@ -1,42 +1,47 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QGraphicsEllipseItem, QGraphicsScene, QGraphicsView, QWidget , QMainWindow , QToolBar
+from PyQt6.QtWidgets import QApplication, QGraphicsEllipseItem, QGraphicsScene, QGraphicsView, QWidget , QMainWindow , QToolBar, QPushButton
 from PyQt6.QtGui import QBrush, QPen, QColor
 from PyQt6.QtCore import Qt
-from Canvas import Canvas
+from Signal_Flow import SignalFlowGraph
 
 
 
 class MainWindow(QMainWindow):
-    TOOLBAR_WIDTH = 300
-    MIN_WIDTH = 800
-    MIN_HEIGHT = 600
-
+    MIN_WIDTH = 250
+    MIN_HEIGHT = 100
     def __init__(self):
         super().__init__()
-
-
-        self.setWindowTitle('Signal flow graph')
+        self.setWindowTitle('Signal flow graph OR Routh stability')
 
         # Sets application dimensions
         self.setGeometry(0, 0, MainWindow.MIN_WIDTH , MainWindow.MIN_HEIGHT)
         self.setMinimumWidth(MainWindow.MIN_WIDTH)
         self.setMinimumHeight(MainWindow.MIN_HEIGHT)
+        self.center_window()
 
-        # Sets canvas
-        self.__canvas = Canvas(self)
-        self.setCentralWidget(self.__canvas)
+        # Create buttons
+        self.SignalFlow = QPushButton('Signal Flow', self)
+        self.SignalFlow.setGeometry(75, 10, 100, 30)
+        self.SignalFlow.clicked.connect(self.create_SignalFlow)
 
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
+        self.Routh = QPushButton('Routh Stability', self)
+        self.Routh.setGeometry(75, 50, 100, 30)
+        self.Routh.clicked.connect(self.create_Routh)
 
-        # Sets canvas dimensions
-        canvas_width = self.width() - MainWindow.TOOLBAR_WIDTH
-        canvas_height = self.height()
+    def create_SignalFlow(self):
+        window.close()
+        self.signal_flow_window = SignalFlowGraph(self)
 
-        # Updates canvas size
-        self.__canvas.setGeometry(MainWindow.TOOLBAR_WIDTH, 0, canvas_width, canvas_height)
-        self.__canvas.update()
+    def create_Routh(self):
+        # TODO: Implement Routh stability method
+        pass
 
+    def center_window(self):
+        screen = QApplication.primaryScreen().geometry()
+        window_size = self.geometry()
+        x = (screen.width() - window_size.width()) // 2
+        y = (screen.height() - window_size.height()) // 2
+        self.move(x, y)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

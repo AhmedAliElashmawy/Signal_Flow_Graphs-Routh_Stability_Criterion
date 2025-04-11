@@ -135,6 +135,14 @@ class Canvas(QGraphicsView):
                 self.__scene.removeItem(self.__dragged_edge)
                 del self.__dragged_edge
 
+    def create_node(self, x, y, text):
+        if self.__node_list:
+            for node in self.__node_list:
+                if node.id == text:
+                    return
+        self.__add_node(x, y, text)
+
+
 
 
 
