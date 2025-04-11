@@ -63,7 +63,7 @@ class Canvas(QGraphicsView):
                     break  # Exit the loop if valid ID is entered
                 else:
 
-                    invalid_format_message = 'Invalid ID', 'ID must be 1 or 2 alphanumeric characters (no special characters).'
+                    invalid_format_message = 'ID must be 1 or 2 alphanumeric characters (no special characters).'
 
                     message = 'ID already exists' if  is_dup else invalid_format_message
 
