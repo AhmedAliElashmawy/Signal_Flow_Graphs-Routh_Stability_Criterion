@@ -141,23 +141,13 @@ class Canvas(QGraphicsView):
                 if node.id == text:
                     return
         self.__add_node(x, y, text)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        
+    
+    def clear(self):
+        for node in self.__node_list:
+            self.__scene.removeItem(node)
+        self.__node_list.clear()
+        self.__scene.clear()
+        self.__add_node(20 , 10 , 'R')
+        self.__add_node(1000 , 20 , 'C')
+        self.__dragged_edge = None

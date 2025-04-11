@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QMainWindow, QPushButton, QHBoxLayout, QWidget, QToolBar, QLineEdit, QLabel, QVBoxLayout, QApplication, QDialog, QScrollArea
+from PyQt6.QtWidgets import QMainWindow, QPushButton, QHBoxLayout, QWidget, QToolBar, QLineEdit, QLabel, QVBoxLayout, QApplication, QDialog, QScrollArea, QMessageBox
 from PyQt6.QtCore import Qt
 from Canvas import Canvas
 import sys
@@ -45,6 +45,7 @@ class SignalFlowGraph(QMainWindow):
         self.add_function_btn.clicked.connect(self.addFunction)
         self.calculate_btn = QPushButton('Calculate Transfer Function')
         self.clear_btn = QPushButton('Clear Graph')
+        self.clear_btn.clicked.connect(self.clear_graph)
         
         # Add buttons to layout
         buttons_layout.addWidget(self.add_function_btn)
@@ -57,12 +58,15 @@ class SignalFlowGraph(QMainWindow):
         # Add buttons widget to toolbar
         self.toolbar.addWidget(buttons_widget)
 
+    def clear_graph(self):
+        self.__canvas.clear()
+
+
     def addFunction(self):
         dialog = QDialog(self)
         dialog.setWindowFlags(Qt.WindowType.Window)
         dialog.setWindowTitle("Add Function")
         dialog.setMinimumSize(700, 400)
-        self.center_window()
         
         # Store equation_rows as instance variable so it can be accessed by other methods
         self.equation_rows = []
@@ -165,6 +169,9 @@ class SignalFlowGraph(QMainWindow):
         for row in self.equation_rows:
             left_textbox = row.itemAt(0).widget()
             right_textbox = row.itemAt(2).widget()
+            if not left_textbox.text().strip() or not right_textbox.text().strip():
+                QMessageBox.warning(self, "Warning", "Please fill all fields")
+                return
             left_text = left_textbox.text()
             right_text = right_textbox.text()
             gain = ''
@@ -186,13 +193,6 @@ class SignalFlowGraph(QMainWindow):
             
         # Close the dialog after adding nodes
         self.findChild(QDialog).close()
-
-    def center_window(self):
-        screen = QApplication.primaryScreen().geometry()
-        window_size = self.geometry()
-        x = (screen.width() - window_size.width()) // 2
-        y = (screen.height() - window_size.height()) // 2
-        self.move(x, y)
 
     def closeEvent(self, event):
         event.accept()
