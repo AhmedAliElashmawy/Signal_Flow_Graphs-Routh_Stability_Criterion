@@ -3,6 +3,7 @@ from PyQt6.QtWidgets import QApplication, QGraphicsEllipseItem, QGraphicsScene, 
 from PyQt6.QtGui import QBrush, QPen, QColor
 from PyQt6.QtCore import Qt
 from Signal_Flow.gui.Signal_Flow import SignalFlowGraph
+from Routh_Stability.gui.Routh_Stability import RouthStability
 
 
 
@@ -17,7 +18,7 @@ class MainWindow(QMainWindow):
         self.setGeometry(0, 0, MainWindow.MIN_WIDTH , MainWindow.MIN_HEIGHT)
         self.setMinimumWidth(MainWindow.MIN_WIDTH)
         self.setMinimumHeight(MainWindow.MIN_HEIGHT)
-        self.center_window()
+        RouthStability.center_window(self)
 
         # Create buttons
         self.SignalFlow = QPushButton('Signal Flow', self)
@@ -33,15 +34,8 @@ class MainWindow(QMainWindow):
         self.signal_flow_window = SignalFlowGraph(self)
 
     def create_Routh(self):
-        # TODO: Implement Routh stability method
-        pass
-
-    def center_window(self):
-        screen = QApplication.primaryScreen().geometry()
-        window_size = self.geometry()
-        x = (screen.width() - window_size.width()) // 2
-        y = (screen.height() - window_size.height()) // 2
-        self.move(x, y)
+        window.close()
+        self.routh_stability_window = RouthStability(self)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

@@ -68,7 +68,6 @@ class SignalFlowGraph(QMainWindow):
         dialog.setWindowTitle("Add Function")
         dialog.setMinimumSize(700, 400)
 
-        # Store equation_rows as instance variable so it can be accessed by other methods
         self.equation_rows = []
 
         # Set black theme stylesheet
@@ -187,8 +186,11 @@ class SignalFlowGraph(QMainWindow):
             print(f"Left: {left_text}, Right: {right_text}, Gain: {gain}")
 
             # Use the new public method with proper spacing
-            self.__canvas.create_node(x_offset, y_offset, left_text)
-            self.__canvas.create_node(x_offset + 100, y_offset, right_text)
+            
+            left_node = self.__canvas.create_node(x_offset, y_offset, left_text)
+            right_node=self.__canvas.create_node(x_offset + 100, y_offset, right_text)
+            if left_node and right_node:
+                self.__canvas.create_edge(left_node, right_node, gain)
             y_offset += 50  # Move next pair of nodes down
 
         # Close the dialog after adding nodes

@@ -34,13 +34,24 @@ class Canvas(QGraphicsView):
         new_node = Node(x=x, y=y, node_id=id)
         self.__adj_list.append(new_node)
         self.__scene.addItem(new_node)
+        return new_node
 
     def create_node(self, x, y, text):
         if self.__adj_list:
             for node in self.__adj_list:
                 if node.id == text:
-                    return
-        self.__add_node(x, y, text)
+                    return node
+        node = self.__add_node(x, y, text)
+        return node
+
+    def create_edge(self, start_node, end_node, gian=1):
+        print(f"Creating edge from {start_node} to {end_node}")
+        edge = Edge(start_node=start_node, end_node=end_node)
+        self.__scene.addItem(edge)
+        start_node.add_outward_edge(edge)
+        end_node.add_inward_edge(edge)
+        edge.update_path()
+
 
     def clear(self):
         for node in self.__adj_list:
@@ -120,21 +131,20 @@ class Canvas(QGraphicsView):
 
 
     def mouseMoveEvent(self, event):
-        graphical_item, pos = self.__get_mouse_pos_item()
+        _ , pos = self.__get_mouse_pos_item()
+        items = self.__scene.items(pos)
+        node = next((item for item in items if isinstance(item, Node)), None)
 
         if event.buttons() & Qt.MouseButton.RightButton and self.__dragged_edge:
-            self.__dragged_edge.update_path(pos)
+            self.__dragged_edge.update_path(pos , len(self.__dragged_edge.start_node.outward_edges) -1)
             self.__scene.update(self.__dragged_edge.boundingRect())
 
-        elif event.buttons() & Qt.MouseButton.LeftButton:
-            if isinstance(graphical_item, Node):
-                self.__change_node_pos(graphical_item, pos.x(), pos.y())
-            elif isinstance(graphical_item.parentItem(), Node):
-                self.__change_node_pos(graphical_item.parentItem(), pos.x(), pos.y())
+
+        elif event.buttons() & Qt.MouseButton.LeftButton and node is None:
+            if isinstance(node, Node):
+                self.__change_node_pos(node, pos.x(), pos.y())
 
         super().mouseMoveEvent(event)
-
-
 
 
     def mouseReleaseEvent(self, event):
