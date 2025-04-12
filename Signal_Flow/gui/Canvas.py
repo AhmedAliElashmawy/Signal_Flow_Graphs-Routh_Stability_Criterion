@@ -36,16 +36,16 @@ class Canvas(QGraphicsView):
         self.__scene.addItem(new_node)
 
     def create_node(self, x, y, text):
-        if self.__node_list:
-            for node in self.__node_list:
+        if self.__adj_list:
+            for node in self.__adj_list:
                 if node.id == text:
                     return
         self.__add_node(x, y, text)
 
     def clear(self):
-        for node in self.__node_list:
+        for node in self.__adj_list:
             self.__scene.removeItem(node)
-        self.__node_list.clear()
+        self.__adj_list.clear()
         self.__scene.clear()
         self.__add_node(20 , 10 , 'R')
         self.__add_node(1000 , 20 , 'C')
@@ -62,7 +62,7 @@ class Canvas(QGraphicsView):
             new_id, ok = QInputDialog.getText(self, 'Edit Node ID', 'Enter new ID (1 or 2 alphanumeric characters):', text=node.id)
 
             # Check if the user entered a valid new ID
-            is_dup = any(x.id == new_id for x in self.__node_list if x!=node)
+            is_dup = any(x.id == new_id for x in self.__adj_list if x!=node)
             if ok:
                 if 1 <= len(new_id) <= 2 and new_id.isalnum() and not is_dup:
                     node.set_id(new_id)
