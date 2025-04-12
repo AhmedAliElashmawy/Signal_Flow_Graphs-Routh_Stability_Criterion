@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QGraphicsPathItem, QGraphicsPolygonItem
+from PyQt6.QtWidgets import QGraphicsPathItem, QGraphicsPolygonItem , QGraphicsTextItem
 from PyQt6.QtGui import QPen, QColor, QPainterPath , QCursor
 from PyQt6.QtCore import QPointF , Qt
 import sympy as sp
@@ -12,8 +12,11 @@ class Edge(QGraphicsPathItem):
         self.__start_node = start_node
         self.__end_node = end_node
         self.__weight = weight
+        self.__curve = None
 
-
+        # Set Edge Gain/Weight
+        self.__weight_label = QGraphicsTextItem(str(self.__weight), self)
+        self.__weight_label.setDefaultTextColor(Qt.GlobalColor.black)
 
         # Register the edge in the nodes
         self.__start_node.add_outward_edge(self)
@@ -31,7 +34,7 @@ class Edge(QGraphicsPathItem):
         self.__end_pos = None
 
 
-    def update_path(self, end_pos=None, curve=0):
+    def update_path(self, end_pos=None):
         path = QPainterPath()
 
         # Set starting position
@@ -46,20 +49,23 @@ class Edge(QGraphicsPathItem):
         if self.__end_pos is None:
             return
 
-        # Straight line case
-        dx = self.__end_pos.x() - start_pos.x()
-        if abs(dx) < 20 and curve == 0:
-            path.moveTo(start_pos)
-            path.lineTo(self.__end_pos)
-            self.setPath(path)
-            return
+
+
+        # Calculate the curve based on the start and end positions
+        if(self.__curve is None):
+            curve_outward = len(self.__start_node.outward_edges)-1
+            curve_backward = len(self.__start_node.inward_edges)
+            self.__curve=  75 * curve_backward   if self.__end_pos.x() < start_pos.x() else -75 * curve_outward
+
+
 
         # Use quadratic Bezier curve
         mid = (start_pos + self.__end_pos) / 2
-        control = QPointF(mid.x(), mid.y() + curve)  # vertical curve
+        control =  QPointF(mid.x(), mid.y() + (self.__curve))  # vertical curve
 
         path.moveTo(start_pos)
-        path.quadTo(control, self.__end_pos)
+        path.quadTo(control , self.__end_pos)
+
 
         # Draw arrow in middle
         t = 0.5  # midpoint
@@ -85,6 +91,22 @@ class Edge(QGraphicsPathItem):
         arrow_path.moveTo(p2)
         arrow_path.lineTo(p1)
         arrow_path.lineTo(p3)
+
+        # Normalize the tangent vector
+        length = math.hypot(tangent.x(), tangent.y())
+        if length == 0:
+            offset = QPointF(0, -20)  # fallback if zero-length vector
+        else:
+            # Perpendicular (normal) vector to tangent (rotated 90 degrees)
+            normal = QPointF(tangent.y() / length, -tangent.x() / length)
+            offset = normal * 20  # scale this for distance from the arrow
+
+        # Center label at pt + offset
+        label_pos = pt + offset - QPointF(self.__weight_label.boundingRect().width() / 2,
+                                        self.__weight_label.boundingRect().height() / 2)
+
+        self.__weight_label.setPos(label_pos)
+
 
         path.addPath(arrow_path)
 
@@ -121,6 +143,7 @@ class Edge(QGraphicsPathItem):
     @weight.setter
     def weight(self, weight):
         self.__weight = weight
+        self.__weight_label.setPlainText(str(weight))
 
     @start_node.setter
     def start_node(self , start_node):

@@ -1,8 +1,10 @@
-from PyQt6.QtWidgets import QApplication, QGraphicsScene, QGraphicsView, QInputDialog, QMessageBox
-from PyQt6.QtGui import QBrush, QPen, QColor , QCursor
-from PyQt6.QtCore import Qt, QPointF , QTimer
+from PyQt6.QtWidgets import QGraphicsScene, QGraphicsView, QInputDialog, QMessageBox
+from PyQt6.QtGui import QBrush, QColor , QCursor
+from PyQt6.QtCore import Qt
 from Signal_Flow.gui.Node import Node
 from Signal_Flow.gui.Edge import Edge
+from sympy import sympify , SympifyError
+
 
 class Canvas(QGraphicsView):
     def __init__(self, parent=None):
@@ -34,24 +36,13 @@ class Canvas(QGraphicsView):
         new_node = Node(x=x, y=y, node_id=id)
         self.__adj_list.append(new_node)
         self.__scene.addItem(new_node)
-        return new_node
 
     def create_node(self, x, y, text):
         if self.__adj_list:
             for node in self.__adj_list:
                 if node.id == text:
-                    return node
-        node = self.__add_node(x, y, text)
-        return node
-
-    def create_edge(self, start_node, end_node, gian=1):
-        print(f"Creating edge from {start_node} to {end_node}")
-        edge = Edge(start_node=start_node, end_node=end_node)
-        self.__scene.addItem(edge)
-        start_node.add_outward_edge(edge)
-        end_node.add_inward_edge(edge)
-        edge.update_path()
-
+                    return
+        self.__add_node(x, y, text)
 
     def clear(self):
         for node in self.__adj_list:
@@ -62,10 +53,11 @@ class Canvas(QGraphicsView):
         self.__add_node(1000 , 20 , 'C')
         self.__dragged_edge = None
 
-    def __change_node_pos(self, node, x, y):
+    def __change_node_pos(self, node : Node, x, y):
         node.setPos(x - 15, y - 15)
         for edge in node.inward_edges + node.outward_edges:
-            edge.update_path()
+            edge.update_path(None)
+            self.__scene.update(edge.boundingRect())
         self.__scene.update(node.boundingRect())
 
     def __change_node_id(self , node):
@@ -92,6 +84,37 @@ class Canvas(QGraphicsView):
 
     #########################################################################
 
+    """ Edge Management"""
+
+    def __change_edge_weight(self, edge: Edge):
+        while True:
+
+            new_weight, ok = QInputDialog.getText(
+                self,
+                'Edit Edge Weight',
+                'Enter new weight (Algebraic Expression / Numeric Value):',
+                text=str(edge.weight)
+            )
+
+            if not ok:
+                break  # User cancelled
+
+            try:
+                expr = sympify(new_weight)
+                edge.weight = expr
+                edge.update()
+                break  # Success
+            except (SympifyError, SyntaxError):
+                QMessageBox.warning(
+                    self,
+                    "Invalid Input",
+                    "Please enter a valid number or algebraic expression."
+                )
+
+
+
+    #########################################################################
+
     """ Mouse Events """
 
 
@@ -102,24 +125,35 @@ class Canvas(QGraphicsView):
         return graphical_item, pos
 
     def mouseDoubleClickEvent(self, event):
-        if event.buttons() == Qt.MouseButton.LeftButton:
-            graphical_item, _ = self.__get_mouse_pos_item()
-            if isinstance(graphical_item, Node):
-                self.__change_node_id(graphical_item)
-            elif isinstance(graphical_item.parentItem(), Node):
-                self.__change_node_id(graphical_item.parentItem())
+        if event.buttons() != Qt.MouseButton.LeftButton:
+            return
+
+        graphical_item, _ = self.__get_mouse_pos_item()
+
+        # Find Parent of Items until it's either node or edge
+        while graphical_item and not isinstance(graphical_item, (Node, Edge)):
+            graphical_item = graphical_item.parentItem()
+
+        if isinstance(graphical_item, Node):
+            self.__change_node_id(graphical_item)
+        elif isinstance(graphical_item, Edge):
+            self.__change_edge_weight(graphical_item)
+
 
     def mousePressEvent(self, event):
         graphical_item, pos = self.__get_mouse_pos_item()
 
-
-
+        # Adds Node in Empty Space on left click
         if event.button() == Qt.MouseButton.LeftButton:
             if graphical_item is None:
                 self.__add_node(pos.x(), pos.y())
 
-        elif event.button() == Qt.MouseButton.RightButton:
-            graphical_item = graphical_item.parentItem() if isinstance(graphical_item.parentItem(), Node) else graphical_item
+        elif event.button() == Qt.MouseButton.RightButton and graphical_item is not None:
+
+            while not isinstance(graphical_item , Node):
+                graphical_item = graphical_item.parentItem()
+
+            # Creates Edge
             if isinstance(graphical_item, Node):
                 self.__dragged_edge = Edge(start_node=graphical_item)
                 self.__scene.addItem(self.__dragged_edge)
@@ -132,39 +166,58 @@ class Canvas(QGraphicsView):
 
     def mouseMoveEvent(self, event):
         _ , pos = self.__get_mouse_pos_item()
-        items = self.__scene.items(pos)
-        node = next((item for item in items if isinstance(item, Node)), None)
 
+
+        # Check if the mouse is over a node
+        items = self.__scene.items(pos)
+        node = next((
+                item if isinstance(item, Node)
+                else item.parentItem()
+                for item in items
+                if isinstance(item, Node) or (item.parentItem() and isinstance(item.parentItem(), Node))
+            ), None)
+
+        # Drag Edge in the canvas
         if event.buttons() & Qt.MouseButton.RightButton and self.__dragged_edge:
-            self.__dragged_edge.update_path(pos , len(self.__dragged_edge.start_node.outward_edges) -1)
+            self.__dragged_edge.update_path(pos)
             self.__scene.update(self.__dragged_edge.boundingRect())
 
-
-        elif event.buttons() & Qt.MouseButton.LeftButton and node is None:
-            if isinstance(node, Node):
-                self.__change_node_pos(node, pos.x(), pos.y())
+        # Moves Node in the canvas
+        elif event.buttons() & Qt.MouseButton.LeftButton and isinstance(node, Node):
+            self.__change_node_pos(node, pos.x(), pos.y())
 
         super().mouseMoveEvent(event)
 
 
+
+
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.MouseButton.RightButton and self.__dragged_edge:
-            graphical_item, pos = self.__get_mouse_pos_item()
+            _, pos = self.__get_mouse_pos_item()
+
+            print (len(self.__dragged_edge.start_node.outward_edges))
 
             items = self.__scene.items(pos)
-            if all(isinstance(item, Edge) for item in items):
-                self.__scene.removeItem(self.__dragged_edge)
-                del self.__dragged_edge
-                return
 
-            node = next((item for item in items if isinstance(item, Node)), None)
-            if isinstance(node, Node) and node != self.__dragged_edge.start_node:
+            # Extracts the node at the cursor on release
+            node = next((
+                item if isinstance(item, Node)
+                else item.parentItem()
+                for item in items
+                if isinstance(item, Node) or (item.parentItem() and isinstance(item.parentItem(), Node))
+            ), None)
+
+
+            if isinstance(node, Node):
                 self.__dragged_edge.end_node = node
                 node.add_inward_edge(self.__dragged_edge)
                 self.__dragged_edge.update_path(None)
                 self.__scene.update(self.__dragged_edge.boundingRect())
             else:
+                # Remove the edge if no node is found
                 self.__scene.removeItem(self.__dragged_edge)
+                self.__dragged_edge.start_node.outward_edges.remove(self.__dragged_edge)
+
 
             self.__dragged_edge = None
 

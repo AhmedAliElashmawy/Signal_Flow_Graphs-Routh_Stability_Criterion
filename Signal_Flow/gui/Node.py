@@ -13,7 +13,7 @@ class Node(QGraphicsEllipseItem):
 
         super().__init__()
 
-        self.__inward_edges = []
+        self.__inward_edges  = []
         self.__outward_edges = []
 
 
