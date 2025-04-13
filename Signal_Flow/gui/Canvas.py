@@ -36,13 +36,24 @@ class Canvas(QGraphicsView):
         new_node = Node(x=x, y=y, node_id=id)
         self.__adj_list.append(new_node)
         self.__scene.addItem(new_node)
+        return new_node
 
     def create_node(self, x, y, text):
         if self.__adj_list:
             for node in self.__adj_list:
                 if node.id == text:
-                    return
-        self.__add_node(x, y, text)
+                    return node
+        node = self.__add_node(x, y, text)
+        return node
+
+    def create_edge(self, start_node, end_node, gian=1):
+        print(f"Creating edge from {start_node} to {end_node}")
+        edge = Edge(start_node=start_node, end_node=end_node, weight=gian)
+        self.__scene.addItem(edge)
+        start_node.add_outward_edge(edge)
+        end_node.add_inward_edge(edge)
+        edge.update_path()
+
 
     def clear(self):
         for node in self.__adj_list:

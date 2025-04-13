@@ -46,11 +46,14 @@ class SignalFlowGraph(QMainWindow):
         self.calculate_btn = QPushButton('Calculate Transfer Function')
         self.clear_btn = QPushButton('Clear Graph')
         self.clear_btn.clicked.connect(self.clear_graph)
+        self.back_btn = QPushButton('Back')
+        self.back_btn.clicked.connect(self.back)
 
         # Add buttons to layout
         buttons_layout.addWidget(self.add_function_btn)
         buttons_layout.addWidget(self.calculate_btn)
         buttons_layout.addWidget(self.clear_btn)
+        buttons_layout.addWidget(self.back_btn)
 
         # Add right stretch to center the buttons
         buttons_layout.addStretch()
@@ -60,6 +63,10 @@ class SignalFlowGraph(QMainWindow):
 
     def clear_graph(self):
         self.__canvas.clear()
+
+    def back(self):
+        self.close()
+        self.parent().show()
 
 
     def addFunction(self):
@@ -186,7 +193,6 @@ class SignalFlowGraph(QMainWindow):
             print(f"Left: {left_text}, Right: {right_text}, Gain: {gain}")
 
             # Use the new public method with proper spacing
-            
             left_node = self.__canvas.create_node(x_offset, y_offset, left_text)
             right_node=self.__canvas.create_node(x_offset + 100, y_offset, right_text)
             if left_node and right_node:
@@ -197,8 +203,14 @@ class SignalFlowGraph(QMainWindow):
         self.findChild(QDialog).close()
 
     def closeEvent(self, event):
-        event.accept()
-        self.__canvas.close()
-        self.__canvas.deleteLater()
-        self.__canvas = None
-        sys.exit(0)
+        if self.parent() is None:  # Only exit if no parent (main application close)
+            event.accept()
+            self.__canvas.close()
+            self.__canvas.deleteLater()
+            self.__canvas = None
+            sys.exit(0)
+        else:  # Otherwise just clean up resources
+            event.accept()
+            self.__canvas.close()
+            self.__canvas.deleteLater()
+            self.__canvas = None

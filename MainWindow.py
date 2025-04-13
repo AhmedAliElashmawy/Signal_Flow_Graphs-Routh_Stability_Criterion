@@ -30,11 +30,11 @@ class MainWindow(QMainWindow):
         self.Routh.clicked.connect(self.create_Routh)
 
     def create_SignalFlow(self):
-        window.close()
+        window.hide()
         self.signal_flow_window = SignalFlowGraph(self)
 
     def create_Routh(self):
-        window.close()
+        window.hide()
         self.routh_stability_window = RouthStability(self)
 
 if __name__ == '__main__':
