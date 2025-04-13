@@ -1,5 +1,6 @@
 from solver import solver  
 from sympy import symbols
+from LogicalComputation.untouchingFilter import SignalFlowAnalyzer
 class MockEdge:
     def __init__(self, source, target, weight):
         self.source = source  
@@ -50,13 +51,17 @@ def test_solver():
     
     solver_instance.extract_paths_and_loops()
 
+    filter = SignalFlowAnalyzer()
+    filter.solve(solver_instance.loops, solver_instance.paths)
     
     print("Paths:")
+    print(solver_instance.paths)
     for path in solver_instance.paths:
         path_str = " -> ".join(node for node in path["path"])
         print(f"Path: {path_str}, Weight: {path['weight']}")
 
     print("\nLoops:")
+    print(solver_instance.loops)
     for loop in solver_instance.loops:
         loop_str = " -> ".join(node for node in loop["loop"])
         print(f"Loop: {loop_str}, Weight: {loop['weight']}")
