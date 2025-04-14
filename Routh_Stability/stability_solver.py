@@ -8,6 +8,7 @@ class RouthStabilitySolver():
     __infinity = int(1e5)
     __neg_infinity = -__infinity
     __s = sp.symbols('s')
+
     __superscript_map = {
     '0': '⁰',
     '1': '¹',
@@ -191,25 +192,51 @@ class RouthStabilitySolver():
 
 
 
-
+            # Add the step
             self.__steps.append(copy.deepcopy(step))
             step[row_i][1:] = self.__routh_table[row + 2, 0:]
             row_i+=1
 
+
+        # Add the final table
         self.__steps.append(copy.deepcopy(step))
 
 
-        # answers = sp.solve()
+        # Build the characteristic equation
+        rhp_roots = []
+        characteristic_eqn = 0
+        s = RouthStabilitySolver.__s
+        for i , coeff in enumerate(self.__coeffs):
+                characteristic_eqn+= coeff*s**(self.__order-i)
 
-        return sign_change , self.__steps
 
 
 
-    # def print_steps(self):
-    #     for x in self.__steps:
-    #         for rows in x:
-    #             print (rows)
-    #         print('\n\n')
+        # Extracting RHP
+        if(sign_change >0):
+
+            roots = sp.solve(characteristic_eqn , s)
+            # Seperate real and imaginary parts in x+yi format
+            for root in roots:
+                real_part = sp.re(root)
+                imag_part = sp.im(root)
+
+                if real_part > 0:
+                    # Create the real + imag*i format
+                    if imag_part != 0:
+                        root_str = f"{sp.latex(real_part.evalf())} + ({sp.latex(imag_part.evalf())})\\cdot\\mathrm{{i}}"
+                    else:
+                        root_str = f"{sp.latex(real_part)}"
+                    rhp_roots.append(root_str)
+
+
+
+
+        return sign_change, rhp_roots , f"{sp.latex(characteristic_eqn)}=0" , self.__steps
+
+
+
+
 
 
 

@@ -1,4 +1,4 @@
-from solver import solver
+from LogicalComputation.solver import solver
 from sympy import symbols
 from LogicalComputation.untouchingFilter import SignalFlowAnalyzer
 

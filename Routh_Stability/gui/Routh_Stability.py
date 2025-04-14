@@ -74,10 +74,10 @@ class RouthStability(QMainWindow):
         for i in range(self.spin.value() + 1):
             item = self.characteristic.item(0, i)
             coeffs[i] = int(item.text()) if item and item.text().isdigit() else 0
-        print(coeffs)
+
         self.solver = RouthStabilitySolver(coeffs)
-        _,result = self.solver.solve()
-        self.display_result(result)
+        sign_changes, rhp_roots , characteristic_eqn, steps = self.solver.solve()
+        self.display_result(steps, characteristic_eqn, sign_changes, rhp_roots)
         # self.display_result(test)
 
     def characteristic_table(self, colums):
@@ -119,7 +119,8 @@ class RouthStability(QMainWindow):
                 0, 0, f"${latex_str}$",
                 fontsize=16,
                 fontfamily="monospace",  # or "sans-serif", "monospace", etc.
-                fontweight="bold"     # optional: "normal", "bold", "light"
+                fontweight="bold",     # optional: "normal", "bold", "light"
+                color="white"
             )
         fig.patch.set_alpha(0.0)
 
@@ -139,14 +140,17 @@ class RouthStability(QMainWindow):
         pixmap.loadFromData(buf.getvalue())
         return pixmap
 
-    def display_result(self, result):
+    def display_result(self, result, characteristic_eqn , sign_changes , rhp_roots):
         self.setGeometry(0, 0, 1000, 800)  # Make window larger
         self.center_window()
         self.setWindowTitle("Routh Stability Result")
         self.solve_button.hide()
+        self.back_button.hide()
         self.equation_label.hide()
         self.spin.hide()
         self.characteristic.hide()
+
+
         if hasattr(self, 'scroll_area'):
             self.scroll_area.deleteLater()
 
@@ -158,9 +162,65 @@ class RouthStability(QMainWindow):
         self.scroll_area.setWidget(self.scroll_content)
         self.centralWidget().layout().addWidget(self.scroll_area)
 
+        #Create break lines
+        lines = []
+
+        for _ in range(3):
+            line = QFrame()
+            line.setFrameShape(QFrame.Shape.HLine)
+            line.setFrameShadow(QFrame.Shadow.Sunken)
+            lines.append(line)
+
+
+        # Shows System Characteristic Equation
+        characteristic_eqn_label = QLabel()
+        characteristic_eqn_label.setPixmap(self.render_latex_to_pixmap(characteristic_eqn))
+        self.scroll_layout.addWidget(characteristic_eqn_label)
+
+        self.scroll_layout.addWidget(lines[0])
+
+
+
+        # Shows No of sign changes
+        sign_label = QLabel(f"Number of Sign Changes: {sign_changes}")
+        sign_label.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+        sign_label.setStyleSheet("color: white; margin: 10px;")
+        self.scroll_layout.addWidget(sign_label)
+
+
+        self.scroll_layout.addWidget(lines[1])
+
+
+
+        # Shows roots in Right hand side of s-plane
+        if rhp_roots != []:
+            roots_label = QLabel("Roots in positive s-plane side:\n")
+            roots_label.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+            roots_label.setStyleSheet("color: white; margin: 10px;")
+            self.scroll_layout.addWidget(roots_label)
+
+            for i, root in enumerate(rhp_roots):
+
+                root_latex = f"\\mathrm{{r}}_{{{i}}} = {root}"
+                root_label = QLabel()
+                root_label.setPixmap(self.render_latex_to_pixmap(f"\\bullet {root_latex}"))
+
+                self.scroll_layout.addWidget(root_label)
+
+
+            self.scroll_layout.addWidget(lines[2])
+
+
+
+
+
+
+
+
+
         for step_index, step in enumerate(result):
             step_label = QLabel(f"Step {step_index + 1}")
-            step_label.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+            step_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
             step_label.setStyleSheet("margin-top: 10px; color: white;")
             self.scroll_layout.addWidget(step_label)
 
@@ -168,8 +228,7 @@ class RouthStability(QMainWindow):
             table.horizontalHeader().setVisible(False)  # Hide horizontal header
             table.verticalHeader().setVisible(False)  # Hide vertical header
 
-            # Hides Scroll Bar
-            # table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
 
             # Determine table size from the number of rows and columns in the result
             num_rows = len(step)
@@ -182,8 +241,17 @@ class RouthStability(QMainWindow):
             table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
             # Set minimum height and width for the table and labels to ensure visibility
-            table.setMinimumHeight(80*len(result[0])//2 + 20)  # Adjust this to make the table bigger
-            table.setMinimumWidth(600)  # Adjust this to make the table wider
+            max_height = 80*len(result[0]) + 20
+            threshold_height = 80*10 + 20
+
+            if(max_height<threshold_height):
+                table.setMinimumHeight(max_height)
+                table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            else:
+                table.setMinimumHeight(threshold_height)
+
+            table.setMinimumWidth(600)
+
 
             # Set row and column sizes dynamically based on content size
             for i in range(table.rowCount()):
@@ -200,22 +268,26 @@ class RouthStability(QMainWindow):
                     label = QLabel()
                     label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
+                    if highlighted:
+                        pixmap = self.render_latex_to_pixmap(column)
+                        label.setPixmap(pixmap)
 
-                    pixmap = self.render_latex_to_pixmap(column )
-                    label.setPixmap(pixmap)
+                        pix_width = pixmap.width()
+                        pix_height = pixmap.height()
+                        label.setMinimumSize(pix_width, pix_height)
 
-                    pix_width = pixmap.width()
-                    pix_height = pixmap.height()
-
-                    label.setMinimumSize(pix_width, pix_height)
-                    label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-
-                    if i == highlight_row_index:
                         label.setStyleSheet("font-weight: bold; background-color: rgba(255,255,255,0.05);")
+                        table.setColumnWidth(j, max(table.columnWidth(j), pix_width))
+                        table.setRowHeight(i, max(table.rowHeight(i), pix_height))
+                    else:
+                        label.setText(str(column))
+                        label.setFont(QFont("Arial", 13))
+                        label.setStyleSheet("color: white;")  # Optional: white plain text
+                        label.setMinimumSize(50, 30)
 
+                    label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
                     table.setCellWidget(i, j, label)
-                    table.setColumnWidth(j, max(table.columnWidth(j), pix_width))
-                    table.setRowHeight(i, max(table.rowHeight(i), pix_height))
+
 
 
 

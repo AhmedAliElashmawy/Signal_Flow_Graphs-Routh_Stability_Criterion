@@ -58,22 +58,25 @@ class solver:
                 path.append((neighbor, edge.weight))
                 self.__find_loops(neighbor, path)
                 path.pop()
-    
-    
-    
+
+
+
     def __is_duplicate_loop(self, new_loop):
+        def normalize_loop_ids(ids):
+            if ids[0] == ids[-1]:
+                ids = ids[:-1]
+            n = len(ids)
+            return min([tuple(ids[i:] + ids[:i]) for i in range(n)])
+
         new_ids = [node.id for node, _ in new_loop]
-        new_ids_set = set(new_ids)
+        norm_new_ids = normalize_loop_ids(new_ids)
         new_weight = self.__calculate_path_weight(new_loop, is_loop=True)
 
         for loop in self.__loops:
             existing_ids = [node.id for node, _ in loop]
-            existing_ids_set = set(existing_ids)
-            existing_weight = self.__calculate_path_weight(loop, is_loop=True)
-
-            # Compare node ID sets
-            if existing_ids_set == new_ids_set:
-                # Compare symbolic loop weights
+            norm_existing_ids = normalize_loop_ids(existing_ids)
+            if norm_new_ids == norm_existing_ids:
+                existing_weight = self.__calculate_path_weight(loop, is_loop=True)
                 if new_weight.equals(existing_weight):
                     return True
 
