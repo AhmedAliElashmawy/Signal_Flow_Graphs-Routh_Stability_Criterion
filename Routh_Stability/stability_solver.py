@@ -7,8 +7,8 @@ class RouthStabilitySolver():
     __X = sp.symbols('X')
     __infinity = int(1e5)
     __neg_infinity = -__infinity
-
-    superscript_map = {
+    __s = sp.symbols('s')
+    __superscript_map = {
     '0': '⁰',
     '1': '¹',
     '2': '²',
@@ -21,18 +21,23 @@ class RouthStabilitySolver():
     '9': '⁹'
 }
     def to_superscript(num):
-        return ''.join(RouthStabilitySolver.superscript_map[d] for d in str(num))
+        return ''.join(RouthStabilitySolver.__superscript_map[d] for d in str(num))
 
-    def __init__(self, coeffs = None):
+    def __init__(self, coeffs = []):
         self.__coeffs = coeffs
         self.__order = len(coeffs) - 1
         self.__steps = []
         self.__routh_table = None
 
+    @property
+    def steps(self):
+        return self.__steps
+
 
     def set_coeffs(self, coeffs):
         self.__coeffs = coeffs
         self.__order = len(coeffs) - 1
+        self.__var_col = []
 
     def __create_var_col(self):
         self.__var_col = []
@@ -42,10 +47,9 @@ class RouthStabilitySolver():
 
 
 
+    def __create_table(self):
 
-    def create_table(self):
-
-        if self.__order< 2:
+        if self.__order< 1:
             print("Error")
             return
 
@@ -75,16 +79,12 @@ class RouthStabilitySolver():
 
         self.__create_var_col()
 
-
         self.__routh_table = routh_table
 
-    def print_steps(self):
-        for x in self.__steps:
-            for rows in x:
-                print (rows)
-            print('\n\n')
 
 
+
+    # Calculates the auxiliary row using previous row diffrentiating with respect to S
     def __auxiliary_row(self, row):
         power = self.__order - row
         auxiliary_row = copy.deepcopy(self.__routh_table[row,:])
@@ -97,8 +97,15 @@ class RouthStabilitySolver():
 
         return auxiliary_row
 
-
     def solve(self):
+
+        if self.__order< 1:
+            print("Error")
+            return
+
+        self.__create_table()
+
+
         rows = self.__routh_table.rows
         cols = self.__routh_table.cols
         step = self.__routh_table.tolist()
@@ -130,11 +137,18 @@ class RouthStabilitySolver():
                 val = ( r2*l1 - r1*l2 ) / r2
                 val = RouthStabilitySolver.__ε if val == 0 and col == 0 and row+2 !=rows-1 else val
 
-                # Adds the equation leading to the column value
-                row_step.append(str(r2) + '\u00D7' + str(l1) + '-' + str(r1) + '\u00D7' + str(l2) + '/' + str(r2) + '=' + str(val))
-
                 # Handles Limit
                 final_val = sp.limit(val , RouthStabilitySolver.__ε, 0)
+
+                limit_expr = "\\lim_{{\\varepsilon \\to 0}}" + sp.latex(val) if 'ε' in str(val) and '/' in str(val) else None
+
+
+                # Adds the equation leading to the column value
+                row_step.append(
+                    f"\\frac{{{sp.latex(r2)} \\cdot {sp.latex(l1)} - {sp.latex(r1)} \\cdot {sp.latex(l2)}}}{{{sp.latex(r2)}}} = {limit_expr if limit_expr is not None else sp.latex(val)}"
+                )
+
+
 
                 if val != RouthStabilitySolver.__ε and val != final_val:
                     row_step[-1]+=('=' + str(final_val))
@@ -171,7 +185,7 @@ class RouthStabilitySolver():
                 step.insert(row_i, [step[row+2][0]] + list(self.__routh_table[row + 2, :]))
 
             else:
-                step[row_i][1:] = row_step+['0']*(cols - len(row_step))
+                step[row_i][1:] = row_step+[0]*(cols - len(row_step))
 
 
 
@@ -185,7 +199,20 @@ class RouthStabilitySolver():
         self.__steps.append(copy.deepcopy(step))
 
 
-        return sign_change
+        # answers = sp.solve()
+
+        return sign_change , self.__steps
+
+
+
+    # def print_steps(self):
+    #     for x in self.__steps:
+    #         for rows in x:
+    #             print (rows)
+    #         print('\n\n')
+
+
+
 
 
 
@@ -210,11 +237,8 @@ class RouthStabilitySolver():
 
 
 if __name__ == "__main__":
-    solv = RouthStabilitySolver([1,2,8,12,20,16,16])
-    solv.create_table()
-    sign_change=solv.solve()
-    solv.print_steps()
-    print(f"Sign Changes : {sign_change}")
+    solv = RouthStabilitySolver([1,2,4,4,23,5])
+
 
 
 
