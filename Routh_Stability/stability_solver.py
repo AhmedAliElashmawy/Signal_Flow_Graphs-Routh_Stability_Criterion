@@ -89,14 +89,25 @@ class RouthStabilitySolver():
     def __auxiliary_row(self, row):
         power = self.__order - row
         auxiliary_row = copy.deepcopy(self.__routh_table[row,:])
-
+        step_aux = []
 
         for i in range(len(auxiliary_row)):
+            if auxiliary_row[i] * power>= 0 and auxiliary_row[i] !=0:
 
-            auxiliary_row[i] = max(0, auxiliary_row[i] * power)
+                # perform d/ds if power is >=0
+                modified_aux_element = auxiliary_row[i] * power
+                step_aux.append(
+                    rf"\mathrm{{coeff}}\left(\frac{{d}}{{ds}} {auxiliary_row[i]}\cdot S^{power}\right) = {modified_aux_element}"
+                )
+                auxiliary_row[i] = modified_aux_element
+
+            else:
+                auxiliary_row[i] = 0
+                step_aux.append('0')
+
             power-=2
 
-        return auxiliary_row
+        return step_aux,auxiliary_row
 
     def solve(self):
 
@@ -104,14 +115,25 @@ class RouthStabilitySolver():
             print("Error")
             return
 
+        # Create Table
         self.__create_table()
-
-
         rows = self.__routh_table.rows
         cols = self.__routh_table.cols
+
+        # Change 2nd row 1st element from 0 -> ε to avoid division by zero
+        self.__routh_table[1 , 0] = RouthStabilitySolver.__ε if self.__routh_table[1,0] == 0 and rows >1 else self.__routh_table[1,0]
+
+
+        # Create Step Matrix and its row count
         step = self.__routh_table.tolist()
-        row_i = 2
-        sign_change = 1 if self.__routh_table[0,0] * self.__routh_table[1,0] < 0 else 0
+
+
+
+        # Initial sign change
+        sign_change = 1 if self.__routh_table[0,0] * (self.__routh_table[1,0]).subs(RouthStabilitySolver.__ε,0) < 0 else 0
+
+
+
 
         for row , var in zip(step , self.__var_col):
             row.insert(0,var)
@@ -171,22 +193,21 @@ class RouthStabilitySolver():
             # Checks for sign change
             if(isinstance(self.__routh_table[row + 2,0], sp.Number) and isinstance(self.__routh_table[row + 1,0], sp.Number)):
                 sign_change += 1 if self.__routh_table[row+2,0] * self.__routh_table[row+1,0] < 0 else 0
-
+            elif (isinstance(self.__routh_table[row + 2,0], sp.Number) and isinstance(self.__routh_table[row ,0], sp.Number)):
+                sign_change += 1 if self.__routh_table[row+2,0] * self.__routh_table[row,0] < 0 else 0
 
 
 
 
             # Handles Zero Row
-            print()
             if self.__routh_table[row + 2, 0] == RouthStabilitySolver.__ε and self.__routh_table[row + 2, 1:].tolist() == [[0]*(cols - 1)]:
-                row_step = [0] * cols
-                step[row_i ][1:] = row_step
-                row_i+=1
-                self.__routh_table[row + 2, :] = self.__auxiliary_row(row+1)
-                step.insert(row_i, [step[row+2][0]] + list(self.__routh_table[row + 2, :]))
-
+                row_step = []
+                aux_step ,aux_row = self.__auxiliary_row(row+1)
+                row_step = aux_step
+                self.__routh_table[row+2 , :] = aux_row
+                step[row+2][1:] = row_step
             else:
-                step[row_i][1:] = row_step+[0]*(cols - len(row_step))
+                step[row+2][1:] = row_step+[0]*(cols - len(row_step))
 
 
 
@@ -194,9 +215,7 @@ class RouthStabilitySolver():
 
             # Add the step
             self.__steps.append(copy.deepcopy(step))
-            step[row_i][1:] = self.__routh_table[row + 2, 0:]
-            row_i+=1
-
+            step[row+2][1:] = self.__routh_table[row + 2, 0:]
 
         # Add the final table
         self.__steps.append(copy.deepcopy(step))
@@ -218,13 +237,14 @@ class RouthStabilitySolver():
             roots = sp.solve(characteristic_eqn , s)
             # Seperate real and imaginary parts in x+yi format
             for root in roots:
-                real_part = sp.re(root)
-                imag_part = sp.im(root)
+                root_eval = root.evalf()
+                real_part = sp.re(root_eval)
+                imag_part = sp.im(root_eval)
 
                 if real_part > 0:
                     # Create the real + imag*i format
                     if imag_part != 0:
-                        root_str = f"{sp.latex(real_part.evalf())} + ({sp.latex(imag_part.evalf())})\\cdot\\mathrm{{i}}"
+                        root_str = f"{sp.latex(real_part)} + ({sp.latex(imag_part)})\\cdot\\mathrm{{i}}"
                     else:
                         root_str = f"{sp.latex(real_part)}"
                     rhp_roots.append(root_str)
