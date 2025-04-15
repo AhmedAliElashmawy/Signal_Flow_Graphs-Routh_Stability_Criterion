@@ -55,6 +55,11 @@ class SignalFlowGraph(QMainWindow):
         buttons_layout.addWidget(self.clear_btn)
         buttons_layout.addWidget(self.back_btn)
 
+        self.calculate_btn.connect(self.show_solution)
+
+
+
+
         # Add right stretch to center the buttons
         buttons_layout.addStretch()
         buttons_widget.setLayout(buttons_layout)
@@ -214,3 +219,12 @@ class SignalFlowGraph(QMainWindow):
             self.__canvas.close()
             self.__canvas.deleteLater()
             self.__canvas = None
+
+
+#############################################################################
+
+    def show_solution():
+        pass
+
+
+

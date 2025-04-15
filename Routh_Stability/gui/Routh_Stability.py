@@ -162,8 +162,13 @@ class RouthStability(QMainWindow):
         self.characteristic.hide()
 
 
+        central_layout = self.centralWidget().layout()
+
+
         if hasattr(self, 'scroll_area'):
+            central_layout.removeWidget(self.scroll_area)
             self.scroll_area.deleteLater()
+            
 
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
@@ -224,18 +229,8 @@ class RouthStability(QMainWindow):
 
 
 
-
-
-
-
-
         for step_index, step in enumerate(result):
-
-            # Skips Zero Row
-            if(step[1] == 0):
-                continue
-
-
+            
             step_label = QLabel(f"Step {step_index + 1}")
             step_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
             step_label.setStyleSheet("margin-top: 10px; color: white;")
@@ -283,11 +278,6 @@ class RouthStability(QMainWindow):
 
 
 
-
-
-
-
-
             # Populate the table with data
             for i, row in enumerate(step):
                 highlighted = i == highlight_row_index
@@ -322,6 +312,13 @@ class RouthStability(QMainWindow):
             self.scroll_layout.addWidget(table)
 
         self.scroll_layout.addStretch()
+
+        # Back button fixed at the bottom
+        self.back_button = QPushButton("Back")
+        self.back_button.setStyleSheet("padding: 10px; margin: 10px;")
+        self.back_button.clicked.connect(self.go_back)
+
+        central_layout.addWidget(self.back_button, alignment=Qt.AlignmentFlag.AlignBottom)
 
 
 
