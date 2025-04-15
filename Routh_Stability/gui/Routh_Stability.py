@@ -73,7 +73,18 @@ class RouthStability(QMainWindow):
         coeffs = [0] * (self.spin.value() + 1)
         for i in range(self.spin.value() + 1):
             item = self.characteristic.item(0, i)
-            coeffs[i] = int(item.text()) if item and item.text().isdigit() else 0
+            try:
+                coeffs[i] = int(item.text())
+            except ValueError:
+                coeffs[i] = 0
+
+
+
+        # Optimize coeffs and remove first consecutive zeros
+        for i in range(len(coeffs)):
+            if coeffs[i]!=0:
+                coeffs = coeffs[i:]
+                break
 
         self.solver = RouthStabilitySolver(coeffs)
         sign_changes, rhp_roots , characteristic_eqn, steps = self.solver.solve()
@@ -219,6 +230,12 @@ class RouthStability(QMainWindow):
 
 
         for step_index, step in enumerate(result):
+
+            # Skips Zero Row
+            if(step[1] == 0):
+                continue
+
+
             step_label = QLabel(f"Step {step_index + 1}")
             step_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
             step_label.setStyleSheet("margin-top: 10px; color: white;")
@@ -259,9 +276,19 @@ class RouthStability(QMainWindow):
             for j in range(table.columnCount()):
                 table.setColumnWidth(j, 150)  # Adjust column width
 
-            # Populate the table with data
-            highlight_row_index = step_index + 1 if 1 <= step_index < len(result) - 1 else -1
 
+
+            # Set Highlighted Row
+            highlight_row_index = step_index + 1 if 1 <= step_index < len(result) - 1  else -1
+
+
+
+
+
+
+
+
+            # Populate the table with data
             for i, row in enumerate(step):
                 highlighted = i == highlight_row_index
                 for j, column in enumerate(row):
