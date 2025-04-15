@@ -30,7 +30,7 @@ class solver:
             self.__paths.append(path.copy())
         else:
             for edge in current_node.outward_edges:
-                neighbor = edge.target
+                neighbor = edge.end_node
                 if all(n != neighbor for n, _ in path):  # Avoid cycles in path
                     self.__dfs(neighbor, path, edge.weight)
 
@@ -48,7 +48,7 @@ class solver:
 
     def __find_loops(self, current_node, path):
         for edge in current_node.outward_edges:
-            neighbor = edge.target
+            neighbor = edge.end_node
             index = next((i for i, (n, _) in enumerate(path) if n == neighbor), -1)
             if index != -1:
                 loop_path = path[index:] + [(neighbor, edge.weight)]

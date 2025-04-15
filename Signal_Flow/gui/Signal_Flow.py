@@ -1,6 +1,15 @@
 from PyQt6.QtWidgets import QMainWindow, QPushButton, QHBoxLayout, QWidget, QToolBar, QLineEdit, QLabel, QVBoxLayout, QApplication, QDialog, QScrollArea, QMessageBox
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont, QPixmap
 from Signal_Flow.gui.Canvas import Canvas
+from LogicalComputation.solver import solver
+from LogicalComputation.untouchingFilter import SignalFlowAnalyzer
+import matplotlib
+from matplotlib import pyplot as plt
+matplotlib.use("Agg")
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+from sympy import Symbol, latex
+import io
 import sys
 
 class SignalFlowGraph(QMainWindow):
@@ -8,6 +17,7 @@ class SignalFlowGraph(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.__canvas = Canvas(self)
+        self.__solver = SignalFlowAnalyzer()
         self.setCentralWidget(self.__canvas)
         self.setWindowTitle('Signal Flow Graph')
         self.showMaximized()
@@ -44,6 +54,7 @@ class SignalFlowGraph(QMainWindow):
         self.add_function_btn = QPushButton('Add Function')
         self.add_function_btn.clicked.connect(self.addFunction)
         self.calculate_btn = QPushButton('Calculate Transfer Function')
+        self.calculate_btn.clicked.connect(self.show_solution)
         self.clear_btn = QPushButton('Clear Graph')
         self.clear_btn.clicked.connect(self.clear_graph)
         self.back_btn = QPushButton('Back')
@@ -55,7 +66,7 @@ class SignalFlowGraph(QMainWindow):
         buttons_layout.addWidget(self.clear_btn)
         buttons_layout.addWidget(self.back_btn)
 
-        self.calculate_btn.connect(self.show_solution)
+        
 
 
 
@@ -222,9 +233,151 @@ class SignalFlowGraph(QMainWindow):
 
 
 #############################################################################
+    def render_to_latex(self , latex_str):
+        fig = plt.figure(figsize=(0.01, 0.01))
+        text = fig.text(
+                0, 0, f"${latex_str}$",
+                fontsize=16,
+                fontfamily="monospace",  # or "sans-serif", "monospace", etc.
+                fontweight="bold",     # optional: "normal", "bold", "light"
+                color="white"
+            )
+        fig.patch.set_alpha(0.0)
 
-    def show_solution():
-        pass
+        canvas = FigureCanvas(fig)
+        canvas.draw()
+        bbox = text.get_window_extent()
+        width, height = bbox.size
+        width, height = int(width), int(height)
+        fig.set_size_inches(width / fig.dpi, height / fig.dpi)
+        canvas.draw()
+
+        buf = io.BytesIO()
+        fig.savefig(buf, format="png", dpi=fig.dpi, bbox_inches='tight', transparent=True, pad_inches=0.05)
+        plt.close(fig)
+
+        pixmap = QPixmap()
+        pixmap.loadFromData(buf.getvalue())
+        return pixmap
+    
+   
+
+    def show_solution(self):
+        solution_dialog = QDialog(self)
+        solution_dialog.setModal(True)
+        solution_dialog.setWindowTitle("Solution")
+        solution_dialog.setMinimumSize(500, 400)
+
+        # Styling
+        solution_dialog.setStyleSheet("""
+            QWidget {
+                background-color: #2b2b2b;
+                color: white;
+            }
+            QPushButton {
+                padding: 8px 20px;
+                border-radius: 4px;
+                background-color: #404040;
+                border: 1px solid #555;
+                color: white;
+            }
+            QPushButton:hover {
+                background-color: #606060;
+            }
+        """)
+
+        layout = QVBoxLayout()
+
+        # Extracts paths and loops
+        path_loops_extractor = solver(self.__canvas)
+        path_loops_extractor.extract_paths_and_loops()
+        paths, loops = path_loops_extractor.paths, path_loops_extractor.loops
+
+        # Computes the deltas and the total transfer func
+        main_delta , deltas , total_transfer_func = self.__solver.solve(loops , paths)
+
+        # Title: Paths
+        title_label = QLabel("Paths")
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title_label)
+
+        for i, path in enumerate(paths, 1):
+            node_str = " \\rightarrow ".join(str(n) for n in path["path"])
+            weight_str = latex(path["weight"])  # convert sympy expression or keep as str
+            latex_str = f"\\bullet P_{{{i}}} : {node_str}, \\quad W = {weight_str}"
+            pixmap = self.render_to_latex(latex_str)
+            label = QLabel()
+            label.setPixmap(pixmap)
+            layout.addWidget(label)
+
+        # Title: Loops
+        loop_title = QLabel("Loops")
+        loop_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(loop_title)
+
+        for i, loop in enumerate(loops, 1):
+            node_str = " \\rightarrow ".join(str(n) for n in loop["loop"])
+            node_str += f" \\rightarrow {loop['loop'][0]}"  # close the loop
+            weight_str = latex(loop["weight"])
+            latex_str = f"\\bullet L_{{{i}}} : {node_str}, \\quad W = {weight_str}"
+            pixmap = self.render_to_latex(latex_str)
+            label = QLabel()
+            label.setPixmap(pixmap)
+            layout.addWidget(label)
+
+        #Title : Deltas
+        deltas_title = QLabel("Deltas")
+        deltas_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(deltas_title)
+
+
+        for i, delta in enumerate(deltas, 1):
+            delta_str = f"\\bullet \\Delta_{i} = {latex(delta)}"
+            label = QLabel()
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            label.setPixmap(self.render_to_latex(delta_str))
+            layout.addWidget(label)
+        
+        #Title : Deltas
+        delta_title = QLabel("Delta")
+        delta_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(delta_title)
+
+        delta_str = f"\\Delta = {latex(main_delta)}"
+        label = QLabel()
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        label.setPixmap(self.render_to_latex(delta_str))
+        layout.addWidget(label)
+
+
+
+        #Transfer func R/C
+        total_transfer_func_label = QLabel("Total Transfer Function")
+        total_transfer_func_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(total_transfer_func_label)
+
+        total_transfer_func = "\\infty" if main_delta ==0 else total_transfer_func
+        total_transfer_func_str = f"\\frac{{C}}{{R}} = {total_transfer_func}" 
+        label = QLabel()
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        label.setPixmap(self.render_to_latex(total_transfer_func_str))
+        layout.addWidget(label)
+
+
+
+
+
+
+        layout.addStretch()
+
+        close_button = QPushButton("Close")
+        close_button.clicked.connect(solution_dialog.close)
+        layout.addWidget(close_button, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        solution_dialog.setLayout(layout)
+        solution_dialog.exec()
+
+
 
 
 

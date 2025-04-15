@@ -145,7 +145,7 @@ class Canvas(QGraphicsView):
         while graphical_item and not isinstance(graphical_item, (Node, Edge)):
             graphical_item = graphical_item.parentItem()
 
-        if isinstance(graphical_item, Node):
+        if isinstance(graphical_item, Node) and graphical_item.id != 'C' or graphical_item.id=='R':
             self.__change_node_id(graphical_item)
         elif isinstance(graphical_item, Edge):
             self.__change_edge_weight(graphical_item)
@@ -165,7 +165,7 @@ class Canvas(QGraphicsView):
                 graphical_item = graphical_item.parentItem()
 
             # Creates Edge
-            if isinstance(graphical_item, Node):
+            if isinstance(graphical_item, Node) and graphical_item.id != 'C':
                 self.__dragged_edge = Edge(start_node=graphical_item)
                 self.__scene.addItem(self.__dragged_edge)
                 self.__scene.update(self.__dragged_edge.boundingRect())
@@ -219,7 +219,7 @@ class Canvas(QGraphicsView):
             ), None)
 
 
-            if isinstance(node, Node):
+            if isinstance(node, Node) and node.id != 'R':
                 self.__dragged_edge.end_node = node
                 node.add_inward_edge(self.__dragged_edge)
                 self.__dragged_edge.update_path(None)

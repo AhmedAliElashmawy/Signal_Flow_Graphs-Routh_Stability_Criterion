@@ -27,7 +27,12 @@ class RouthStability(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         layout = QVBoxLayout(central_widget)
-
+        central_widget.setStyleSheet("""
+           QWidget {
+                background-color: #2b2b2b;
+                color: white;
+            } 
+        """)
         # Create and configure widgets
         self.equation_label = QLabel("Enter the System Order:")
         self.equation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -35,6 +40,7 @@ class RouthStability(QMainWindow):
         self.equation_label.setStyleSheet("color: white;")
 
         self.spin = QSpinBox()
+        self.spin.setValue(3)
         self.spin.setMinimum(1)
 
         self.characteristic = self.characteristic_table(self.spin.value())

@@ -94,6 +94,7 @@ class SignalFlowAnalyzer:
 
     def __calculate_sigma_paths_mul_delta(self):
         numerator_summation = 0
+        deltas = []
         for path_key in self.__untouching_loops_paths:
             loops_info = self.__untouching_loops_paths[path_key]
             delta = Integer(1)
@@ -110,18 +111,18 @@ class SignalFlowAnalyzer:
                     summation += multiplication_of_loops
                 delta += sign * summation
                 sign *= -1
-
+            deltas.append(delta)
             numerator_summation += delta * self.paths_gain[path_key]
 
-        return numerator_summation
+        return numerator_summation , deltas
 
     def solve(self, loops, paths):
         self.__filter(loops, paths)
         delta = self.__calculate_delta()
-        numerator = self.__calculate_sigma_paths_mul_delta()
+        numerator , deltas = self.__calculate_sigma_paths_mul_delta()
         print("num: " + str(numerator))
         print("delta: " + str(delta))
         result = numerator / delta
         print("result: " + str(result))
-        return result
+        return delta , deltas , result 
 
