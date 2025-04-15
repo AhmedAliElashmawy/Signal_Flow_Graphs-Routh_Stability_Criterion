@@ -416,26 +416,44 @@ class SignalFlowGraph(QMainWindow):
         layout.addWidget(self.__create_title("Non-Touching Loops"))
 
         # Map loop content to their label names
-        loop_labels = {}
-        for idx, loop in enumerate(_solver.loops_gain.keys(), 1):
-            loop_labels[tuple(loop)] = f"L_{{{idx}}}"
+        # Map each loop to a label like L_{1}, L_{2}, ...
+        loop_labels = {
+            tuple(loop): f"L_{{{idx}}}"
+            for idx, loop in enumerate(_solver.loops_gain.keys(), 1)
+        }
 
+        # Display non-touching loop groups level-wise
         for level in sorted(non_touching_loops.keys()):
-            if not non_touching_loops[level]:
+            groups = non_touching_loops[level]
+            if not groups:
                 continue
 
+            # Create a centered title for this level
             level_title = QLabel(f"{level + 1} Non-Touching Loops")
             level_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
             layout.addWidget(level_title)
 
-            for group in non_touching_loops[level]:
-                label_names = [loop_labels[tuple(loop)] for loop in group]
+            for group in groups:
+                if not group:
+                    continue
+
+                try:
+                    # Get LaTeX labels for each loop in the group
+                    label_names = [loop_labels[tuple(loop[1])] for loop in group]
+                except KeyError as e:
+                    print(f"Missing loop key in loop_labels: {e}")
+                    continue
+
+                # Join the labels with spacing
                 joined = " \\quad \\|\\quad ".join(label_names)
                 latex_str = f"\\bullet {joined}"
+
+                # Create and add a label rendered with LaTeX
                 label = QLabel()
                 label.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 label.setPixmap(self.render_to_latex(latex_str))
                 layout.addWidget(label)
+
 
         layout.addWidget(self.__create_separator())
 
