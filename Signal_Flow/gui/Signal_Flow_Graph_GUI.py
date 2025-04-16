@@ -467,7 +467,7 @@ class SignalFlowGraph(QMainWindow):
         #Transfer func R/C
         layout.addWidget(self.__create_title("Total Transfer Function"))
 
-        total_transfer_func = "\\infty" if main_delta ==0 else total_transfer_func
+        total_transfer_func = "\\infty" if main_delta ==0 else latex(total_transfer_func)
         total_transfer_func_str = f"\\frac{{C}}{{R}} = {total_transfer_func}"
         label = QLabel()
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)

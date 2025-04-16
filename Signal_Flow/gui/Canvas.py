@@ -44,10 +44,22 @@ class Canvas(QGraphicsView):
     """ Node Management"""
 
     def __add_node(self, x, y, id=None):
+        existing_ids = {node.id for node in self.__adj_list}
+
+        if id is None:
+            while True:
+                proposed_id = f"X{Node.ID}"
+                if proposed_id not in existing_ids:
+                    id = proposed_id
+                    break
+                Node.ID += 1
+
         new_node = Node(x=x, y=y, node_id=id)
         self.__adj_list.append(new_node)
         self.__scene.addItem(new_node)
         return new_node
+
+
 
     def create_node(self, x, y, text):
         if self.__adj_list:
