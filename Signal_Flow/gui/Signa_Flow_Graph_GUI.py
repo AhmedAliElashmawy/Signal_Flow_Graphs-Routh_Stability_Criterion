@@ -214,94 +214,61 @@ class SignalFlowGraph(QMainWindow):
 
 
     def addToCanvas(self):
-        base_x = 0
-        base_y = 0
-
+        x_offset = 0
+        y_offset = 0
         for row in self.equation_rows:
             left_textbox = row.itemAt(0).widget()
             right_textbox = row.itemAt(2).widget()
-
-            # === Safety Check ===
-            if not left_textbox or not right_textbox:
-                QMessageBox.warning(self, "Warning", "Missing input fields in a row.")
+            if not left_textbox.text().strip() or not right_textbox.text().strip():
+                QMessageBox.warning(self, "Warning", "Please fill all fields")
                 return
-
-            left_textbox.setPlaceholderText("e.g., X1")  # Hint for left input
-            right_textbox.setPlaceholderText("e.g., (s+1)*X2 + (2*s)*X3")  # Hint for right input
-
-            left_name = left_textbox.text().strip()
-            right_expr = right_textbox.text().strip()
-
-            # === Left Validation ===
-            if not left_name or len(left_name) > 3:
-                QMessageBox.warning(self, "Warning", "Left variable must be 1–3 characters long.")
+            left_textbox.setPlaceholderText("e.g., X1")
+            right_textbox.setPlaceholderText("e.g., (s+1)*X2 + (2*s)*X3")
+            if left_textbox.text().strip() == 'R':
+                QMessageBox.warning(self, "Warning", "No 'R' are allowed on the left box")
                 return
-            if 'R' in left_name:
-                QMessageBox.warning(self, "Warning", "Left variable cannot contain 'R'.")
-                return
+            left_text = left_textbox.text()
+            right_text = right_textbox.text().replace(' ', '')
+            arr = []
+            gain = []
+            i = 0
 
-            # === Right Validation ===
-            if not right_expr:
-                QMessageBox.warning(self, "Warning", "Right-hand expression cannot be empty.")
-                return
-            if re.search(r'\bC\w*\b', right_expr):
-                QMessageBox.warning(self, "Warning", "Right-hand expression cannot include symbols starting with 'C'.")
-                return
+            # X1 = (A)X2+(-3.5)R
 
-            # === Create left node ===
-            left_node = self.__canvas.create_node(base_x, base_y, left_name)
-            x_match = re.match(r'X(\d+)', left_name)
-            if x_match:
-                Node.set_id_max(int(x_match.group(1)) + 1)
-
-            # === Split and parse terms ===
-            terms = re.findall(r'([+-]?\s*[^+-]+)', right_expr)
-            term_x = base_x + 200
-
-            for term in terms:
-                term = term.strip()
-                if not term:
-                    continue
-
-                # === Match expressions of the form: (gain) * var ===
-                match = re.match(r'^\(?\s*(.+?)\s*\)?\s*\*\s*([a-zA-Z_]\w*)$', term)
-                if match:
-                    raw_gain, var_name = match.groups()
-                    gain = f"({raw_gain.strip()})"
+            while i < len(right_text):
+                if right_text[i] == '(':
+                    i += 1
+                    temp = ''
+                    while i < len(right_text) and right_text[i] != ')':
+                        temp += right_text[i]
+                        i += 1
+                    gain.append(temp)
+                    i += 1
+                elif right_text[i] == '+':
+                    i += 1
                 else:
-                    # Try to match a lone variable (implied gain = 1)
-                    match = re.match(r'^([a-zA-Z_]\w*)$', term)
-                    if match:
-                        var_name = match.group(1)
-                        gain = "1"
-                    else:
-                        QMessageBox.warning(self, "Warning", f"Invalid term format: {term}\nHint: Use (gain)*Var")
-                        return
-
-                var_name = var_name.strip()
-                if len(var_name) > 3:
-                    QMessageBox.warning(self, "Warning", f"Variable name '{var_name}' is too long (max 3 chars).")
-                    return
-                if var_name.startswith('C'):
-                    QMessageBox.warning(self, "Warning", f"Variable '{var_name}' not allowed (starts with 'C').")
-                    return
-
-                # === Create node and edge ===
-                right_node = self.__canvas.create_node(term_x, base_y, var_name)
-                self.__canvas.create_edge(right_node, left_node, simplify(gain))
-
-                x_match = re.match(r'X(\d+)', var_name)
-                if x_match:
-                    Node.set_id_max(int(x_match.group(1)) + 1)
-
-                term_x += 120
-
-            base_y += 100
-
-        # === Close dialog if exists ===
-        dialog = self.findChild(QDialog)
-        if dialog:
-            dialog.close()
+                    temp = ''
+                    while i < len(right_text) and right_text[i] != '(' and right_text[i] != '+':
+                        if right_text[i] == 'C':
+                            QMessageBox.warning(self, "Warning", "No 'C' are allowed on the right box")
+                            return
+                        temp += right_text[i]
+                        i += 1
+                    if temp:
+                        arr.append(temp)
+            
+            # gain = ['A', '-3.5']
+            # arr = ['X2', 'R']
+            left_node = self.__canvas.create_node(x_offset, y_offset, left_text)
+            for i in range(len(arr)):
+                weight = float(gain[i]) if i < len(gain) else 1.0
+                right_node=self.__canvas.create_node(x_offset + 100, y_offset, arr[i])
+                if left_node and right_node:
+                    self.__canvas.create_edge(right_node, left_node, weight)
+            y_offset += 50  # Move next pair of nodes down
+            
+        # Close the dialog after adding nodes
+        self.findChild(QDialog).close()
 
 
 
