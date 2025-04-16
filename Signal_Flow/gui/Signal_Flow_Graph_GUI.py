@@ -342,6 +342,7 @@ class SignalFlowGraph(QMainWindow):
     def show_solution(self):
         solution_dialog = QDialog(self)
         solution_dialog.setModal(True)
+        solution_dialog.setWindowFlags(Qt.WindowType.Window)
         solution_dialog.setWindowTitle("Solution")
         solution_dialog.setMinimumSize(500, 400)
 
