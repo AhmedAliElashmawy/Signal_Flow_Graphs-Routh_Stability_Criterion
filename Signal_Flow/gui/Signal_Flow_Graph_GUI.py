@@ -100,7 +100,8 @@ class SignalFlowGraph(QMainWindow):
 
 
     def addFunction(self):
-        dialog = QDialog(self)
+        self.dialog = QDialog(self)
+        dialog = self.dialog
         dialog.setWindowFlags(Qt.WindowType.Window)
         dialog.setWindowTitle("Add Function")
         dialog.setMinimumSize(700, 400)
@@ -270,7 +271,9 @@ class SignalFlowGraph(QMainWindow):
             y_offset += 50  # Move next pair of nodes down
             
         # Close the dialog after adding nodes
-        self.findChild(QDialog).close()
+        if hasattr(self, 'dialog') and self.dialog is not None:
+            self.dialog.close()
+            self.dialog = None
 
 
 
