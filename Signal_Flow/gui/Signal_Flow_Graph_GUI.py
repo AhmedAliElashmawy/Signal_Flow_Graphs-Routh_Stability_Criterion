@@ -225,7 +225,7 @@ class SignalFlowGraph(QMainWindow):
                 QMessageBox.warning(self, "Warning", "Please fill all fields")
                 return
             left_textbox.setPlaceholderText("e.g., X1")
-            right_textbox.setPlaceholderText("e.g., (s+1)*X2 + (2*s)*X3")
+            right_textbox.setPlaceholderText("e.g., (s+1)X2 + (2*s)X3")
             if left_textbox.text().strip() == 'R':
                 QMessageBox.warning(self, "Warning", "No 'R' are allowed on the left box")
                 return
@@ -248,6 +248,9 @@ class SignalFlowGraph(QMainWindow):
                     i += 1
                 elif right_text[i] == '+':
                     i += 1
+                elif right_text[i] == '*' or right_text[i] == '/':
+                    QMessageBox.warning(self, "Warning", "No '*' or '/' are allowed")
+                    return
                 else:
                     temp = ''
                     while i < len(right_text) and right_text[i] != '(' and right_text[i] != '+':
