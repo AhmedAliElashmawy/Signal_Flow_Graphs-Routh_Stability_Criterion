@@ -7,7 +7,7 @@ import matplotlib
 from matplotlib import pyplot as plt
 matplotlib.use("Agg")
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-from Routh_Stability.stability_solver import RouthStabilitySolver
+from Routh_Stability.Routh_Stability_Criterion_Solver import RouthStabilitySolver
 import io
 import sys
 
@@ -31,7 +31,7 @@ class RouthStability(QMainWindow):
            QWidget {
                 background-color: #2b2b2b;
                 color: white;
-            } 
+            }
         """)
         # Create and configure widgets
         self.equation_label = QLabel("Enter the System Order:")
@@ -174,7 +174,7 @@ class RouthStability(QMainWindow):
         if hasattr(self, 'scroll_area'):
             central_layout.removeWidget(self.scroll_area)
             self.scroll_area.deleteLater()
-            
+
 
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
@@ -187,7 +187,7 @@ class RouthStability(QMainWindow):
         #Create break lines
         lines = []
 
-        for _ in range(3):
+        for _ in range(4):
             line = QFrame()
             line.setFrameShape(QFrame.Shape.HLine)
             line.setFrameShadow(QFrame.Shadow.Sunken)
@@ -201,6 +201,16 @@ class RouthStability(QMainWindow):
 
         self.scroll_layout.addWidget(lines[0])
 
+        # Shows System Stability
+        sign_label = QLabel("The System is" + ("Stable" if sign_changes==0 else "Unstable"))
+        sign_label.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+        sign_label.setStyleSheet("color: white; margin: 10px;")
+
+
+
+
+        self.scroll_layout.addWidget(lines[1])
+
 
 
         # Shows No of sign changes
@@ -210,7 +220,7 @@ class RouthStability(QMainWindow):
         self.scroll_layout.addWidget(sign_label)
 
 
-        self.scroll_layout.addWidget(lines[1])
+        self.scroll_layout.addWidget(lines[2])
 
 
 
@@ -230,13 +240,13 @@ class RouthStability(QMainWindow):
                 self.scroll_layout.addWidget(root_label)
 
 
-            self.scroll_layout.addWidget(lines[2])
+            self.scroll_layout.addWidget(lines[3])
 
 
 
 
         for step_index, step in enumerate(result):
-            
+
             step_label = QLabel(f"Step {step_index + 1}")
             step_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
             step_label.setStyleSheet("margin-top: 10px; color: white;")

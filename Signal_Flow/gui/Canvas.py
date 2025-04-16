@@ -23,6 +23,7 @@ class Canvas(QGraphicsView):
 
         self.__add_node(20, 10, 'R')
         self.__add_node(1000, 20, 'C')
+        self.__adj_list[0].reset_id()
 
     @property
     def adj_list(self):
@@ -62,6 +63,7 @@ class Canvas(QGraphicsView):
         self.__scene.clear()
         self.__add_node(20 , 10 , 'R')
         self.__add_node(1000 , 20 , 'C')
+        self.__adj_list[0].reset_id()
         self.__dragged_edge = None
 
     def __change_node_pos(self, node : Node, x, y):
@@ -145,8 +147,9 @@ class Canvas(QGraphicsView):
         while graphical_item and not isinstance(graphical_item, (Node, Edge)):
             graphical_item = graphical_item.parentItem()
 
-        if isinstance(graphical_item, Node) and graphical_item.id != 'C' or graphical_item.id=='R':
-            self.__change_node_id(graphical_item)
+        if isinstance(graphical_item, Node):
+            if graphical_item.id != 'C' or graphical_item.id!='R':
+                self.__change_node_id(graphical_item)
         elif isinstance(graphical_item, Edge):
             self.__change_edge_weight(graphical_item)
 

@@ -1,9 +1,9 @@
-from PyQt6.QtWidgets import QMainWindow, QPushButton, QHBoxLayout, QWidget, QToolBar, QLineEdit, QLabel, QVBoxLayout, QApplication, QDialog, QScrollArea, QMessageBox
+from PyQt6.QtWidgets import QMainWindow, QPushButton, QHBoxLayout, QWidget, QToolBar, QLineEdit, QLabel, QVBoxLayout, QApplication, QDialog, QScrollArea, QMessageBox , QFrame
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QPixmap
 from Signal_Flow.gui.Canvas import Canvas
-from LogicalComputation.solver import solver
-from LogicalComputation.untouchingFilter import SignalFlowAnalyzer
+from LogicalComputation.Loops_and_Path_Extractor import solver
+from LogicalComputation.Signal_Flow_Graph_Solver import SignalFlowAnalyzer
 import matplotlib
 from matplotlib import pyplot as plt
 matplotlib.use("Agg")
@@ -66,7 +66,7 @@ class SignalFlowGraph(QMainWindow):
         buttons_layout.addWidget(self.clear_btn)
         buttons_layout.addWidget(self.back_btn)
 
-        
+
 
 
 
@@ -259,8 +259,21 @@ class SignalFlowGraph(QMainWindow):
         pixmap = QPixmap()
         pixmap.loadFromData(buf.getvalue())
         return pixmap
-    
-   
+
+
+    def __create_title(self,text):
+        title = QLabel(text)
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title.setStyleSheet("font-size: 18px; font-weight: bold;")
+        return title
+
+    def __create_separator(self):
+        line = QFrame()
+        line.setFrameShape(QFrame.Shape.HLine)
+        line.setFrameShadow(QFrame.Shadow.Sunken)
+        line.setStyleSheet("color: white; background-color: white;")
+        return line
+
 
     def show_solution(self):
         solution_dialog = QDialog(self)
@@ -286,7 +299,13 @@ class SignalFlowGraph(QMainWindow):
             }
         """)
 
-        layout = QVBoxLayout()
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+
+        scroll_content = QWidget()
+        layout = QVBoxLayout(scroll_content)
+
+        scroll.setWidget(scroll_content)
 
         # Extracts paths and loops
         path_loops_extractor = solver(self.__canvas)
@@ -294,12 +313,10 @@ class SignalFlowGraph(QMainWindow):
         paths, loops = path_loops_extractor.paths, path_loops_extractor.loops
 
         # Computes the deltas and the total transfer func
-        main_delta , deltas , total_transfer_func = self.__solver.solve(loops , paths)
+        main_delta , deltas , non_touching_loops ,total_transfer_func = self.__solver.solve(loops , paths)
 
         # Title: Paths
-        title_label = QLabel("Paths")
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(title_label)
+        layout.addWidget(self.__create_title("Paths"))
 
         for i, path in enumerate(paths, 1):
             node_str = " \\rightarrow ".join(str(n) for n in path["path"])
@@ -310,14 +327,13 @@ class SignalFlowGraph(QMainWindow):
             label.setPixmap(pixmap)
             layout.addWidget(label)
 
+        layout.addWidget(self.__create_separator())
+
         # Title: Loops
-        loop_title = QLabel("Loops")
-        loop_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(loop_title)
+        layout.addWidget(self.__create_title("Loops"))
 
         for i, loop in enumerate(loops, 1):
             node_str = " \\rightarrow ".join(str(n) for n in loop["loop"])
-            node_str += f" \\rightarrow {loop['loop'][0]}"  # close the loop
             weight_str = latex(loop["weight"])
             latex_str = f"\\bullet L_{{{i}}} : {node_str}, \\quad W = {weight_str}"
             pixmap = self.render_to_latex(latex_str)
@@ -325,10 +341,39 @@ class SignalFlowGraph(QMainWindow):
             label.setPixmap(pixmap)
             layout.addWidget(label)
 
+        layout.addWidget(self.__create_separator())
+
+        # Title: Non-Touching Loops
+        layout.addWidget(self.__create_title("Non-Touching Loops"))
+
+        # Map loop content to their label names
+        loop_labels = {}
+        for idx, loop in enumerate(self.__solver.loops_gain.keys(), 1):
+            loop_labels[tuple(loop)] = f"L_{{{idx}}}"
+
+        for level in sorted(non_touching_loops.keys()):
+            if not non_touching_loops[level]:
+                continue
+
+            level_title = QLabel(f"{level + 1} Non-Touching Loops")
+            level_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            layout.addWidget(level_title)
+
+            for group in non_touching_loops[level]:
+                label_names = [loop_labels[tuple(loop)] for loop in group]
+                joined = " \\quad \\|\\quad ".join(label_names)
+                latex_str = f"\\bullet {joined}"
+                label = QLabel()
+                label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                label.setPixmap(self.render_to_latex(latex_str))
+                layout.addWidget(label)
+
+        layout.addWidget(self.__create_separator())
+
+
+
         #Title : Deltas
-        deltas_title = QLabel("Deltas")
-        deltas_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(deltas_title)
+        layout.addWidget(self.__create_title("Deltas"))
 
 
         for i, delta in enumerate(deltas, 1):
@@ -337,11 +382,11 @@ class SignalFlowGraph(QMainWindow):
             label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             label.setPixmap(self.render_to_latex(delta_str))
             layout.addWidget(label)
-        
+
+        layout.addWidget(self.__create_separator())
+
         #Title : Deltas
-        delta_title = QLabel("Delta")
-        delta_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(delta_title)
+        layout.addWidget(self.__create_title("Delta"))
 
         delta_str = f"\\Delta = {latex(main_delta)}"
         label = QLabel()
@@ -349,15 +394,15 @@ class SignalFlowGraph(QMainWindow):
         label.setPixmap(self.render_to_latex(delta_str))
         layout.addWidget(label)
 
+        layout.addWidget(self.__create_separator())
+
 
 
         #Transfer func R/C
-        total_transfer_func_label = QLabel("Total Transfer Function")
-        total_transfer_func_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(total_transfer_func_label)
+        layout.addWidget(self.__create_title("Total Transfer Function"))
 
         total_transfer_func = "\\infty" if main_delta ==0 else total_transfer_func
-        total_transfer_func_str = f"\\frac{{C}}{{R}} = {total_transfer_func}" 
+        total_transfer_func_str = f"\\frac{{C}}{{R}} = {total_transfer_func}"
         label = QLabel()
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         label.setPixmap(self.render_to_latex(total_transfer_func_str))
@@ -374,7 +419,12 @@ class SignalFlowGraph(QMainWindow):
         close_button.clicked.connect(solution_dialog.close)
         layout.addWidget(close_button, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        solution_dialog.setLayout(layout)
+        dialog_layout = QVBoxLayout()
+        dialog_layout.addWidget(scroll)
+        dialog_layout.addWidget(close_button, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        solution_dialog.setLayout(dialog_layout)
+
         solution_dialog.exec()
 
 

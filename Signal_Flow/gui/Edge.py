@@ -36,18 +36,21 @@ class Edge(QGraphicsPathItem):
 
     def update_path(self, end_pos=None):
         path = QPainterPath()
-
+        radius = self.__start_node.RADIUS
         # Set starting position
-        start_pos = self.__start_node.scenePos() + QPointF(15, 15)
+        start_pos = self.__start_node.scenePos() + QPointF(radius, radius)
 
         # Set ending position
         if self.__end_node:
-            self.__end_pos = self.__end_node.scenePos() + QPointF(15, 15)
+            self.__end_pos = self.__end_node.scenePos() + QPointF(radius, radius)
         elif end_pos is not None:
             self.__end_pos = end_pos
 
+
         if self.__end_pos is None:
             return
+
+
 
 
 

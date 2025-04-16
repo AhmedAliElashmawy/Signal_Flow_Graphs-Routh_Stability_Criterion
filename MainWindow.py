@@ -2,8 +2,8 @@ import sys
 from PyQt6.QtWidgets import QApplication, QGraphicsEllipseItem, QGraphicsScene, QGraphicsView, QWidget , QMainWindow , QToolBar, QPushButton
 from PyQt6.QtGui import QBrush, QPen, QColor
 from PyQt6.QtCore import Qt
-from Signal_Flow.gui.Signal_Flow import SignalFlowGraph
-from Routh_Stability.gui.Routh_Stability import RouthStability
+from Signal_Flow.gui.Signa_Flow_Graph_GUI import SignalFlowGraph
+from Routh_Stability.gui.Routh_Stability_Criterion_GUI import RouthStability
 
 
 

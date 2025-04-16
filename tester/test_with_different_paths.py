@@ -1,6 +1,6 @@
-from LogicalComputation.solver import solver
+from LogicalComputation.Loops_and_Path_Extractor import solver
 from sympy import symbols
-from LogicalComputation.untouchingFilter import SignalFlowAnalyzer
+from LogicalComputation.Signal_Flow_Graph_Solver import SignalFlowAnalyzer
 
 class MockEdge:
     def __init__(self, source, target, weight):

@@ -124,5 +124,5 @@ class SignalFlowAnalyzer:
         print("delta: " + str(delta))
         result = numerator / delta
         print("result: " + str(result))
-        return delta , deltas , result 
+        return delta , deltas , self.__untouching_loops ,result
 
