@@ -13,6 +13,7 @@ from sympy import Symbol, latex , simplify
 import io
 import re
 import sys
+from sympy import sympify
 
 class SignalFlowGraph(QMainWindow):
     TOOLBAR_HEIGHT = 50
@@ -259,9 +260,10 @@ class SignalFlowGraph(QMainWindow):
             
             # gain = ['A', '-3.5']
             # arr = ['X2', 'R']
+            
             left_node = self.__canvas.create_node(x_offset, y_offset, left_text)
             for i in range(len(arr)):
-                weight = float(gain[i]) if i < len(gain) else 1.0
+                weight = sympify(gain[i]) if i < len(gain) else 1.0
                 right_node=self.__canvas.create_node(x_offset + 100, y_offset, arr[i])
                 if left_node and right_node:
                     self.__canvas.create_edge(right_node, left_node, weight)
