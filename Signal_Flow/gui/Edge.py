@@ -55,16 +55,27 @@ class Edge(QGraphicsPathItem):
 
 
         # Calculate the curve based on the start and end positions
-        if(self.__curve is None):
-            curve_outward = len(self.__start_node.outward_edges)-1
+        # Calculate the curve based on last and current end positions
+        if self.__curve is None:
+            curve_outward = len(self.__start_node.outward_edges) - 1
             curve_backward = len(self.__start_node.inward_edges)
-            self.__curve=  75 * curve_backward   if self.__end_pos.x() < start_pos.x() else -75 * curve_outward
+            self.__curve = 75 * (curve_backward if self.__end_pos.x() < start_pos.x() else curve_outward)
+
+        # Flip the curve if end is before start (looping back)
+        effective_curve = self.__curve
+        if self.__end_pos.x() < start_pos.x():
+            effective_curve = abs(self.__curve)  # Make sure it's positive
+        else:
+            effective_curve = -abs(self.__curve)  # Make sure it's negative
+
+
+
 
 
 
         # Use quadratic Bezier curve
         mid = (start_pos + self.__end_pos) / 2
-        control =  QPointF(mid.x(), mid.y() + (self.__curve))  # vertical curve
+        control =  QPointF(mid.x(), mid.y() + (effective_curve))  # vertical curve
 
         path.moveTo(start_pos)
         path.quadTo(control , self.__end_pos)

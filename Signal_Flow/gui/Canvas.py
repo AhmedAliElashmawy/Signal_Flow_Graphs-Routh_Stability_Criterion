@@ -23,7 +23,7 @@ class Canvas(QGraphicsView):
 
         self.__add_node(20, 10, 'R')
         self.__add_node(1000, 20, 'C')
-        self.__adj_list[0].reset_id()
+        Node.reset_id()
 
     @property
     def adj_list(self):
@@ -47,9 +47,9 @@ class Canvas(QGraphicsView):
         node = self.__add_node(x, y, text)
         return node
 
-    def create_edge(self, start_node, end_node, gian=1):
+    def create_edge(self, start_node, end_node, gain=1):
         print(f"Creating edge from {start_node} to {end_node}")
-        edge = Edge(start_node=start_node, end_node=end_node, weight=gian)
+        edge = Edge(start_node=start_node, end_node=end_node, weight=gain)
         self.__scene.addItem(edge)
         start_node.add_outward_edge(edge)
         end_node.add_inward_edge(edge)
@@ -63,7 +63,7 @@ class Canvas(QGraphicsView):
         self.__scene.clear()
         self.__add_node(20 , 10 , 'R')
         self.__add_node(1000 , 20 , 'C')
-        self.__adj_list[0].reset_id()
+        Node.reset_id()
         self.__dragged_edge = None
 
     def __change_node_pos(self, node : Node, x, y):
@@ -161,6 +161,7 @@ class Canvas(QGraphicsView):
         if event.button() == Qt.MouseButton.LeftButton:
             if graphical_item is None:
                 self.__add_node(pos.x(), pos.y())
+            
 
         elif event.button() == Qt.MouseButton.RightButton and graphical_item is not None:
 

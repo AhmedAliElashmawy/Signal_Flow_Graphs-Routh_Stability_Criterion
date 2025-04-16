@@ -4,12 +4,14 @@ from PyQt6.QtGui import QFont, QPixmap
 from Signal_Flow.gui.Canvas import Canvas
 from LogicalComputation.Loops_and_Path_Extractor import solver
 from LogicalComputation.Signal_Flow_Graph_Solver import SignalFlowAnalyzer
+from Signal_Flow.gui.Node import Node
 import matplotlib
 from matplotlib import pyplot as plt
 matplotlib.use("Agg")
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-from sympy import Symbol, latex
+from sympy import Symbol, latex , simplify
 import io
+import re
 import sys
 
 class SignalFlowGraph(QMainWindow):
@@ -141,15 +143,27 @@ class SignalFlowGraph(QMainWindow):
             row_layout.setSpacing(10)
 
             left_textbox = QLineEdit()
+            left_textbox.setPlaceholderText("e.g., X1 (no R)")
+            left_textbox.setMinimumWidth(100)
+
             equals_label = QLabel("=")
+
             right_textbox = QLineEdit()
+            right_textbox.setPlaceholderText("e.g., (s+1)*X2")
+            right_textbox.setMinimumWidth(200)
 
             row_layout.addWidget(left_textbox)
             row_layout.addWidget(equals_label)
             row_layout.addWidget(right_textbox)
 
+            # Optional: Add a row-specific error label
+            # error_label = QLabel("")
+            # error_label.setStyleSheet("color: red")
+            # row_layout.addWidget(error_label)
+
             main_layout.insertLayout(len(self.equation_rows), row_layout)
             self.equation_rows.append(row_layout)
+
 
         # Add initial equation row
         add_equation_row()
@@ -185,38 +199,101 @@ class SignalFlowGraph(QMainWindow):
         # Show dialog
         dialog.show()
 
+
+
+
     def addToCanvas(self):
-        x_offset = 0
-        y_offset = 0
+        base_x = 0
+        base_y = 0
+
         for row in self.equation_rows:
             left_textbox = row.itemAt(0).widget()
             right_textbox = row.itemAt(2).widget()
-            if not left_textbox.text().strip() or not right_textbox.text().strip():
-                QMessageBox.warning(self, "Warning", "Please fill all fields")
+
+            # === Safety Check ===
+            if not left_textbox or not right_textbox:
+                QMessageBox.warning(self, "Warning", "Missing input fields in a row.")
                 return
-            left_text = left_textbox.text()
-            right_text = right_textbox.text()
-            gain = ''
 
-            for char in right_text:
-                if char.isdigit() or char == '.':
-                    gain += char
-                    right_text = right_text.replace(char, '', 1)
+            left_textbox.setPlaceholderText("e.g., X1")  # Hint for left input
+            right_textbox.setPlaceholderText("e.g., (s+1)*X2 + (2*s)*X3")  # Hint for right input
+
+            left_name = left_textbox.text().strip()
+            right_expr = right_textbox.text().strip()
+
+            # === Left Validation ===
+            if not left_name or len(left_name) > 3:
+                QMessageBox.warning(self, "Warning", "Left variable must be 1–3 characters long.")
+                return
+            if 'R' in left_name:
+                QMessageBox.warning(self, "Warning", "Left variable cannot contain 'R'.")
+                return
+
+            # === Right Validation ===
+            if not right_expr:
+                QMessageBox.warning(self, "Warning", "Right-hand expression cannot be empty.")
+                return
+            if re.search(r'\bC\w*\b', right_expr):
+                QMessageBox.warning(self, "Warning", "Right-hand expression cannot include symbols starting with 'C'.")
+                return
+
+            # === Create left node ===
+            left_node = self.__canvas.create_node(base_x, base_y, left_name)
+            x_match = re.match(r'X(\d+)', left_name)
+            if x_match:
+                Node.set_id_max(int(x_match.group(1)) + 1)
+
+            # === Split and parse terms ===
+            terms = re.findall(r'([+-]?\s*[^+-]+)', right_expr)
+            term_x = base_x + 200
+
+            for term in terms:
+                term = term.strip()
+                if not term:
+                    continue
+
+                # === Match expressions of the form: (gain) * var ===
+                match = re.match(r'^\(?\s*(.+?)\s*\)?\s*\*\s*([a-zA-Z_]\w*)$', term)
+                if match:
+                    raw_gain, var_name = match.groups()
+                    gain = f"({raw_gain.strip()})"
                 else:
-                    break
+                    # Try to match a lone variable (implied gain = 1)
+                    match = re.match(r'^([a-zA-Z_]\w*)$', term)
+                    if match:
+                        var_name = match.group(1)
+                        gain = "1"
+                    else:
+                        QMessageBox.warning(self, "Warning", f"Invalid term format: {term}\nHint: Use (gain)*Var")
+                        return
 
-            gain = float(gain) if gain else 1.0
-            print(f"Left: {left_text}, Right: {right_text}, Gain: {gain}")
+                var_name = var_name.strip()
+                if len(var_name) > 3:
+                    QMessageBox.warning(self, "Warning", f"Variable name '{var_name}' is too long (max 3 chars).")
+                    return
+                if var_name.startswith('C'):
+                    QMessageBox.warning(self, "Warning", f"Variable '{var_name}' not allowed (starts with 'C').")
+                    return
 
-            # Use the new public method with proper spacing
-            left_node = self.__canvas.create_node(x_offset, y_offset, left_text)
-            right_node=self.__canvas.create_node(x_offset + 100, y_offset, right_text)
-            if left_node and right_node:
-                self.__canvas.create_edge(left_node, right_node, gain)
-            y_offset += 50  # Move next pair of nodes down
+                # === Create node and edge ===
+                right_node = self.__canvas.create_node(term_x, base_y, var_name)
+                self.__canvas.create_edge(right_node, left_node, simplify(gain))
 
-        # Close the dialog after adding nodes
-        self.findChild(QDialog).close()
+                x_match = re.match(r'X(\d+)', var_name)
+                if x_match:
+                    Node.set_id_max(int(x_match.group(1)) + 1)
+
+                term_x += 120
+
+            base_y += 100
+
+        # === Close dialog if exists ===
+        dialog = self.findChild(QDialog)
+        if dialog:
+            dialog.close()
+
+
+
 
     def closeEvent(self, event):
         if self.parent() is None:  # Only exit if no parent (main application close)

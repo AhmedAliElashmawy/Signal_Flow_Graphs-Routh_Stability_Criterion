@@ -69,9 +69,11 @@ class Node(QGraphicsEllipseItem):
     def id(self):
         return self.__node_id.toPlainText()
 
-    def reset_id(self):
+    def reset_id():
         Node.ID = 0
 
+    def set_id_max(id):
+        Node.ID = max(id , Node.ID)
     def hoverEnterEvent(self, event):
         self.setPen(QPen(Qt.GlobalColor.darkCyan, 2))
 
