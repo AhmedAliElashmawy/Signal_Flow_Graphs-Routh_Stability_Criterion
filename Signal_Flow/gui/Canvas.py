@@ -157,8 +157,7 @@ class Canvas(QGraphicsView):
                 self.__scene.removeItem(edge)
 
             self.__scene.removeItem(node)
-            if node in self.__adj_list:
-                self.__adj_list.remove(node)
+            self.__adj_list.remove(node)
 
         elif isinstance(graphical_item, Edge):
             edge = graphical_item
@@ -169,6 +168,9 @@ class Canvas(QGraphicsView):
                 edge.end_node.inward_edges.remove(edge)
 
             self.__scene.removeItem(edge)
+
+
+        self.update()
 
 
 

@@ -20,7 +20,6 @@ class SignalFlowGraph(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.__canvas = Canvas(self)
-        self.__solver = SignalFlowAnalyzer()
         self.setCentralWidget(self.__canvas)
         self.setWindowTitle('Signal Flow Graph')
         self.showMaximized()
@@ -58,7 +57,7 @@ class SignalFlowGraph(QMainWindow):
         self.add_function_btn.clicked.connect(self.addFunction)
         self.calculate_btn = QPushButton('Calculate Transfer Function')
         self.calculate_btn.clicked.connect(self.show_solution)
-        self.delete_mode_btn = QPushButton('Delete_Mode')
+        self.delete_mode_btn = QPushButton('Enter Delete_Mode')
         self.delete_mode_btn.clicked.connect(self.toggle_delete)
         self.clear_btn = QPushButton('Clear Graph')
         self.clear_btn.clicked.connect(self.clear_graph)
@@ -93,9 +92,11 @@ class SignalFlowGraph(QMainWindow):
     def toggle_delete(self):
         if(self.__canvas.delete_mode):
             self.delete_mode_btn.setText("Enter Delete Mode")
+            self.delete_mode_btn.setStyleSheet("background-color: grey;")
             self.__canvas.delete_mode = False
         else:
             self.delete_mode_btn.setText("Exit Delete Mode")
+            self.delete_mode_btn.setStyleSheet("background-color: red;")
             self.__canvas.delete_mode = True
 
 
@@ -376,7 +377,8 @@ class SignalFlowGraph(QMainWindow):
         paths, loops = path_loops_extractor.paths, path_loops_extractor.loops
 
         # Computes the deltas and the total transfer func
-        main_delta , deltas , non_touching_loops ,total_transfer_func = self.__solver.solve(loops , paths)
+        _solver = SignalFlowAnalyzer()
+        main_delta , deltas , non_touching_loops ,total_transfer_func = _solver.solve(loops , paths)
 
         # Title: Paths
         layout.addWidget(self.__create_title("Paths"))
@@ -411,7 +413,7 @@ class SignalFlowGraph(QMainWindow):
 
         # Map loop content to their label names
         loop_labels = {}
-        for idx, loop in enumerate(self.__solver.loops_gain.keys(), 1):
+        for idx, loop in enumerate(_solver.loops_gain.keys(), 1):
             loop_labels[tuple(loop)] = f"L_{{{idx}}}"
 
         for level in sorted(non_touching_loops.keys()):

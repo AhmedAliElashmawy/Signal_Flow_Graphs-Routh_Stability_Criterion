@@ -8,6 +8,7 @@ class Node(QGraphicsEllipseItem):
 
     ID = 0
     RADIUS = 15
+    
 
     def __init__(self , x , y , node_id = None):
 
