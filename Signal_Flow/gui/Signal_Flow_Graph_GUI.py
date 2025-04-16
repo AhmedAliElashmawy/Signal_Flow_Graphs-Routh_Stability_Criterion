@@ -265,6 +265,9 @@ class SignalFlowGraph(QMainWindow):
             
             # gain = ['A', '-3.5']
             # arr = ['X2', 'R']
+            print(arr)
+            print(gain)
+            print(len(arr))
             
             left_node = self.__canvas.create_node(x_offset, y_offset, left_text)
             for i in range(len(arr)):

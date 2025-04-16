@@ -73,8 +73,6 @@ class Canvas(QGraphicsView):
         print(f"Creating edge from {start_node} to {end_node}")
         edge = Edge(start_node=start_node, end_node=end_node, weight=gain)
         self.__scene.addItem(edge)
-        start_node.add_outward_edge(edge)
-        end_node.add_inward_edge(edge)
         edge.update_path()
 
 
