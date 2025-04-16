@@ -202,9 +202,10 @@ class RouthStability(QMainWindow):
         self.scroll_layout.addWidget(lines[0])
 
         # Shows System Stability
-        sign_label = QLabel("The System is" + ("Stable" if sign_changes==0 else "Unstable"))
-        sign_label.setFont(QFont("Arial", 18, QFont.Weight.Bold))
-        sign_label.setStyleSheet("color: white; margin: 10px;")
+        stability_label = QLabel("The System is " + ("Stable" if sign_changes==0 else "Unstable"))
+        stability_label.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+        stability_label.setStyleSheet("color: white; margin: 10px;")
+        self.scroll_layout.addWidget(stability_label)
 
 
 
