@@ -12,6 +12,7 @@ class Canvas(QGraphicsView):
 
         self.__adj_list = []
         self.__dragged_edge: Edge = None
+        self.__delete_mode = False
 
         self.setSceneRect(0, 0, 800, 600)
         self.__scene = QGraphicsScene(self)
@@ -29,7 +30,16 @@ class Canvas(QGraphicsView):
     def adj_list(self):
         return self.__adj_list
 
+    @property
+    def delete_mode(self):
+        return self.__delete_mode
+    @delete_mode.setter
+    def delete_mode(self , mode):
+        self.__delete_mode = mode
+
     ##########################################################################
+
+
 
     """ Node Management"""
 
@@ -128,6 +138,43 @@ class Canvas(QGraphicsView):
 
     #########################################################################
 
+    def __delete_item(self, graphical_item):
+
+        while graphical_item and not isinstance(graphical_item, (Node, Edge)):
+            graphical_item = graphical_item.parentItem()
+
+        if isinstance(graphical_item, Node):
+            node = graphical_item
+
+            for edge in node.inward_edges[:]:
+                if edge.start_node:
+                    edge.start_node.outward_edges.remove(edge)
+                self.__scene.removeItem(edge)
+
+            for edge in node.outward_edges[:]:
+                if edge.end_node:
+                    edge.end_node.inward_edges.remove(edge)
+                self.__scene.removeItem(edge)
+
+            self.__scene.removeItem(node)
+            if node in self.__adj_list:
+                self.__adj_list.remove(node)
+
+        elif isinstance(graphical_item, Edge):
+            edge = graphical_item
+
+            if edge.start_node and edge in edge.start_node.outward_edges:
+                edge.start_node.outward_edges.remove(edge)
+            if edge.end_node and edge in edge.end_node.inward_edges:
+                edge.end_node.inward_edges.remove(edge)
+
+            self.__scene.removeItem(edge)
+
+
+
+
+
+    #########################################################################
     """ Mouse Events """
 
 
@@ -159,9 +206,12 @@ class Canvas(QGraphicsView):
 
         # Adds Node in Empty Space on left click
         if event.button() == Qt.MouseButton.LeftButton:
-            if graphical_item is None:
+
+            if graphical_item is None and not self.__delete_mode:
                 self.__add_node(pos.x(), pos.y())
-            
+            elif graphical_item is not None and self.__delete_mode:
+                self.__delete_item(graphical_item)
+
 
         elif event.button() == Qt.MouseButton.RightButton and graphical_item is not None:
 

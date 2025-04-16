@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QGraphicsPathItem, QGraphicsPolygonItem , QGraphicsTextItem
-from PyQt6.QtGui import QPen, QColor, QPainterPath , QCursor
-from PyQt6.QtCore import QPointF , Qt
+from PyQt6.QtGui import QPen, QColor, QPainterPath , QCursor 
+from PyQt6.QtCore import QPointF , Qt , QRectF
 import sympy as sp
 from Signal_Flow.gui.Node import Node
 import math
@@ -37,94 +37,116 @@ class Edge(QGraphicsPathItem):
     def update_path(self, end_pos=None):
         path = QPainterPath()
         radius = self.__start_node.RADIUS
-        # Set starting position
         start_pos = self.__start_node.scenePos() + QPointF(radius, radius)
 
-        # Set ending position
         if self.__end_node:
             self.__end_pos = self.__end_node.scenePos() + QPointF(radius, radius)
         elif end_pos is not None:
             self.__end_pos = end_pos
 
-
         if self.__end_pos is None:
             return
 
+        # === SELF-LOOP LOGIC ===
+        if self.__end_node == self.__start_node:
+            loop_radius = 40
+            loop_offset = QPointF(0, -radius - loop_radius)
 
+            loop_center = start_pos + loop_offset
+            rect = QRectF(loop_center.x() - loop_radius, loop_center.y() - loop_radius,
+                        loop_radius * 2, loop_radius * 2)
 
+            path.moveTo(start_pos)
+            path.arcTo(rect, 0, 270)  # draw a loop (arc)
 
+            # Arrow in the middle of the arc (approximate at 135 degrees)
+            angle = math.radians(135)
+            pt = QPointF(loop_center.x() + loop_radius * math.cos(angle),
+                        loop_center.y() + loop_radius * math.sin(angle))
+            tangent_angle = angle + math.radians(90)
 
-        # Calculate the curve based on the start and end positions
-        # Calculate the curve based on last and current end positions
+            # Arrowhead
+            arrow_size = 10
+            angle1 = tangent_angle + math.radians(30)
+            angle2 = tangent_angle - math.radians(30)
+            p2 = QPointF(pt.x() + arrow_size * math.cos(angle1), pt.y() + arrow_size * math.sin(angle1))
+            p3 = QPointF(pt.x() + arrow_size * math.cos(angle2), pt.y() + arrow_size * math.sin(angle2))
+
+            arrow_path = QPainterPath()
+            arrow_path.moveTo(p2)
+            arrow_path.lineTo(pt)
+            arrow_path.lineTo(p3)
+
+            path.addPath(arrow_path)
+
+            # Label position
+            label_offset = QPointF(0, -radius - 2 * loop_radius)
+            label_pos = start_pos + label_offset - QPointF(
+                self.__weight_label.boundingRect().width() / 2,
+                self.__weight_label.boundingRect().height() / 2
+            )
+            self.__weight_label.setPos(label_pos)
+
+            self.setPath(path)
+            return  # Done drawing self-loop
+
+        # === ORIGINAL CURVE LOGIC ===
         if self.__curve is None:
             curve_outward = len(self.__start_node.outward_edges) - 1
             curve_backward = len(self.__start_node.inward_edges)
             self.__curve = 75 * (curve_backward if self.__end_pos.x() < start_pos.x() else curve_outward)
 
-        # Flip the curve if end is before start (looping back)
         effective_curve = self.__curve
         if self.__end_pos.x() < start_pos.x():
-            effective_curve = abs(self.__curve)  # Make sure it's positive
+            effective_curve = abs(self.__curve)
         else:
-            effective_curve = -abs(self.__curve)  # Make sure it's negative
+            effective_curve = -abs(self.__curve)
 
-
-
-
-
-
-        # Use quadratic Bezier curve
         mid = (start_pos + self.__end_pos) / 2
-        control =  QPointF(mid.x(), mid.y() + (effective_curve))  # vertical curve
+        control = QPointF(mid.x(), mid.y() + (effective_curve))
 
         path.moveTo(start_pos)
-        path.quadTo(control , self.__end_pos)
+        path.quadTo(control, self.__end_pos)
 
-
-        # Draw arrow in middle
-        t = 0.5  # midpoint
+        # === Arrowhead and Label ===
         def bezier_point(p0, p1, p2, t):
             return (1 - t) ** 2 * p0 + 2 * (1 - t) * t * p1 + t ** 2 * p2
 
         def bezier_tangent(p0, p1, p2, t):
             return 2 * (1 - t) * (p1 - p0) + 2 * t * (p2 - p1)
 
+        t = 0.5
         pt = bezier_point(start_pos, control, self.__end_pos, t)
         tangent = bezier_tangent(start_pos, control, self.__end_pos, t)
         angle = math.atan2(tangent.y(), tangent.x())
 
-        # Create arrowhead (triangle)
         arrow_size = 10
         angle1 = angle + math.radians(150)
         angle2 = angle - math.radians(150)
-        p1 = pt
-        p2 = QPointF(p1.x() + arrow_size * math.cos(angle1), p1.y() + arrow_size * math.sin(angle1))
-        p3 = QPointF(p1.x() + arrow_size * math.cos(angle2), p1.y() + arrow_size * math.sin(angle2))
+        p2 = QPointF(pt.x() + arrow_size * math.cos(angle1), pt.y() + arrow_size * math.sin(angle1))
+        p3 = QPointF(pt.x() + arrow_size * math.cos(angle2), pt.y() + arrow_size * math.sin(angle2))
 
         arrow_path = QPainterPath()
         arrow_path.moveTo(p2)
-        arrow_path.lineTo(p1)
+        arrow_path.lineTo(pt)
         arrow_path.lineTo(p3)
 
-        # Normalize the tangent vector
         length = math.hypot(tangent.x(), tangent.y())
         if length == 0:
-            offset = QPointF(0, -20)  # fallback if zero-length vector
+            offset = QPointF(0, -20)
         else:
-            # Perpendicular (normal) vector to tangent (rotated 90 degrees)
             normal = QPointF(tangent.y() / length, -tangent.x() / length)
-            offset = normal * 20  # scale this for distance from the arrow
+            offset = normal * 20
 
-        # Center label at pt + offset
-        label_pos = pt + offset - QPointF(self.__weight_label.boundingRect().width() / 2,
-                                        self.__weight_label.boundingRect().height() / 2)
-
+        label_pos = pt + offset - QPointF(
+            self.__weight_label.boundingRect().width() / 2,
+            self.__weight_label.boundingRect().height() / 2
+        )
         self.__weight_label.setPos(label_pos)
 
-
         path.addPath(arrow_path)
-
         self.setPath(path)
+
 
 
 

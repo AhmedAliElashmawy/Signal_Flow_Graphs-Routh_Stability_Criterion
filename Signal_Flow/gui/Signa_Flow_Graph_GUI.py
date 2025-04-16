@@ -57,6 +57,8 @@ class SignalFlowGraph(QMainWindow):
         self.add_function_btn.clicked.connect(self.addFunction)
         self.calculate_btn = QPushButton('Calculate Transfer Function')
         self.calculate_btn.clicked.connect(self.show_solution)
+        self.delete_mode_btn = QPushButton('Delete_Mode')
+        self.delete_mode_btn.clicked.connect(self.toggle_delete)
         self.clear_btn = QPushButton('Clear Graph')
         self.clear_btn.clicked.connect(self.clear_graph)
         self.back_btn = QPushButton('Back')
@@ -65,6 +67,7 @@ class SignalFlowGraph(QMainWindow):
         # Add buttons to layout
         buttons_layout.addWidget(self.add_function_btn)
         buttons_layout.addWidget(self.calculate_btn)
+        buttons_layout.addWidget(self.delete_mode_btn)
         buttons_layout.addWidget(self.clear_btn)
         buttons_layout.addWidget(self.back_btn)
 
@@ -85,6 +88,14 @@ class SignalFlowGraph(QMainWindow):
     def back(self):
         self.close()
         self.parent().show()
+
+    def toggle_delete(self):
+        if(self.__canvas.delete_mode):
+            self.delete_mode_btn.setText("Enter Delete Mode")
+            self.__canvas.delete_mode = False
+        else:
+            self.delete_mode_btn.setText("Exit Delete Mode")
+            self.__canvas.delete_mode = True
 
 
     def addFunction(self):
