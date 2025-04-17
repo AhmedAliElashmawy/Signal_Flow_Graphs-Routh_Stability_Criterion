@@ -1,6 +1,6 @@
 import sys
 from PyQt6.QtWidgets import QApplication, QGraphicsEllipseItem, QGraphicsScene, QGraphicsView, QWidget , QMainWindow , QToolBar, QPushButton
-from PyQt6.QtGui import QBrush, QPen, QColor
+from PyQt6.QtGui import QBrush, QPen, QColor, QIcon
 from PyQt6.QtCore import Qt
 from Signal_Flow.gui.Signal_Flow_Graph_GUI import SignalFlowGraph
 from Routh_Stability.gui.Routh_Stability_Criterion_GUI import RouthStability
@@ -40,6 +40,8 @@ class MainWindow(QMainWindow):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     window = MainWindow()
+    app_icon = QIcon("contour.png")
+    app.setWindowIcon(app_icon)
     window.show()
     sys.exit(app.exec())
 

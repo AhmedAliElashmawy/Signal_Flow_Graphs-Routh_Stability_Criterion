@@ -464,7 +464,7 @@ class SignalFlowGraph(QMainWindow):
 
 
         for i, delta in enumerate(deltas, 1):
-            delta_str = f"\\bullet \\Delta_{i} = {latex(delta)}"
+            delta_str = f"\\bullet \\Delta_{{{i}}} = {latex(delta)}"
             label = QLabel()
             label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             label.setPixmap(self.render_to_latex(delta_str))
