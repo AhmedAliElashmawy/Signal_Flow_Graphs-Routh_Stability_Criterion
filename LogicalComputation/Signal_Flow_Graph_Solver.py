@@ -16,26 +16,23 @@ class SignalFlowAnalyzer:
         print(paths)
         print(loops)
 
-        self.paths_gain = {(i, tuple(path['path'])): path['weight'] for i, path in enumerate(paths)}
-        self.loops_gain = {(i, tuple(loop['loop'])): loop['weight'] for i, loop in enumerate(loops)}
-
+        self.paths_gain = {tuple(path['path']): path['weight'] for path in paths}
+        self.loops_gain = {tuple(loop['loop']): loop['weight'] for loop in loops}
 
         for loop_description in loops:
             loops_sets.append(set(loop_description['loop']))
 
-        for i, path_description in enumerate(paths):
+        for path_description in paths:
             paths_sets.append(set(path_description['path']))
-            path_key = (i,tuple(path_description['path']))
+            path_key = tuple(path_description['path'])
             if path_key not in self.__untouching_loops_paths:
                 self.__untouching_loops_paths[path_key] = {}
 
             self.__untouching_loops_paths[path_key][0] = [
-                [loop_key[1]] for loop_key in self.loops_gain if set(loop_key[1]).isdisjoint(set(path_description['path']))
+                [loop['loop']] for loop in loops if set(loop['loop']).isdisjoint(set(path_description['path']))
             ]
 
-
-        self.__untouching_loops[0] = [[loop_key[1]] for loop_key in self.loops_gain]
-
+        self.__untouching_loops[0] = [[loop['loop']] for loop in loops]
 
         loops_number = 1
 
@@ -86,13 +83,7 @@ class SignalFlowAnalyzer:
             for non_touching_loops in all_loops:
                 multiplication_of_loops = Integer(1)
                 for loop in non_touching_loops:
-
-                    loop_gain = None
-                    for key in self.loops_gain:
-                        if key[1] == tuple(loop):
-                            loop_gain = self.loops_gain[key]
-                            break
-
+                    loop_gain = self.loops_gain[tuple(loop)]
                     multiplication_of_loops *= loop_gain
                 summation += multiplication_of_loops
             delta += sign * summation
@@ -115,13 +106,7 @@ class SignalFlowAnalyzer:
                     multiplication_of_loops = Integer(1)
                     print(non_touching_loops)
                     for loop in non_touching_loops:
-
-                        loop_gain = None
-                        for key in self.loops_gain:
-                            if key[1] == tuple(loop):
-                                loop_gain = self.loops_gain[key]
-                                break
-                            
+                        loop_gain = self.loops_gain[tuple(loop)]
                         multiplication_of_loops *= loop_gain
                     summation += multiplication_of_loops
                 delta += sign * summation
